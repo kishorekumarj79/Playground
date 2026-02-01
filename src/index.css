@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Klefki Trust Playground Design System */
+    
+    /* Primary - Paytm Blue */
+    --primary: 195 100% 48%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Backgrounds */
+    --background: 0 0% 100%;
+    --foreground: 220 20% 10%;
+    
+    /* Cards and surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+    
+    /* Secondary - Neutral grey */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 20% 20%;
+    
+    /* Muted elements */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 46%;
+    
+    /* Accent - Light blue tint */
+    --accent: 195 100% 97%;
+    --accent-foreground: 195 100% 35%;
+    
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders and inputs */
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 195 100% 48%;
+    
+    --radius: 0.5rem;
+    
+    /* Role colors */
+    --issuer: 195 100% 48%;
+    --issuer-foreground: 0 0% 100%;
+    --issuer-muted: 195 100% 97%;
+    
+    --holder: 142 76% 36%;
+    --holder-foreground: 0 0% 100%;
+    --holder-muted: 142 76% 97%;
+    
+    --verifier: 262 83% 58%;
+    --verifier-foreground: 0 0% 100%;
+    --verifier-muted: 262 83% 97%;
+    
+    /* Console */
+    --console-bg: 220 20% 10%;
+    --console-foreground: 220 14% 90%;
+    --console-muted: 220 14% 30%;
+    
+    /* Console syntax highlighting */
+    --console-key: 210 100% 70%;
+    --console-string: 142 70% 55%;
+    --console-number: 35 100% 60%;
+    --console-boolean: 280 70% 70%;
+    --console-null: 220 10% 50%;
+    
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    
+    /* Sidebar */
+    --sidebar-background: 220 14% 98%;
+    --sidebar-foreground: 220 20% 20%;
+    --sidebar-primary: 195 100% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 195 100% 97%;
+    --sidebar-accent-foreground: 195 100% 35%;
+    --sidebar-border: 220 14% 92%;
+    --sidebar-ring: 195 100% 48%;
+  }
+
+  .dark {
+    --background: 220 20% 10%;
+    --foreground: 220 14% 96%;
+    --card: 220 20% 12%;
+    --card-foreground: 220 14% 96%;
+    --popover: 220 20% 12%;
+    --popover-foreground: 220 14% 96%;
+    --primary: 195 100% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 220 14% 96%;
+    --muted: 220 20% 18%;
+    --muted-foreground: 220 14% 60%;
+    --accent: 195 100% 15%;
+    --accent-foreground: 195 100% 70%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 20%;
+    --input: 220 20% 20%;
+    --ring: 195 100% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  /* Smooth scrollbar for console */
+  .console-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .console-scroll::-webkit-scrollbar-track {
+    background: hsl(var(--console-muted));
+    border-radius: 3px;
+  }
+  
+  .console-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--console-foreground) / 0.3);
+    border-radius: 3px;
+  }
+  
+  .console-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--console-foreground) / 0.5);
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .role-issuer {
+    --role-color: var(--issuer);
+    --role-foreground: var(--issuer-foreground);
+    --role-muted: var(--issuer-muted);
+  }
+  
+  .role-holder {
+    --role-color: var(--holder);
+    --role-foreground: var(--holder-foreground);
+    --role-muted: var(--holder-muted);
+  }
+  
+  .role-verifier {
+    --role-color: var(--verifier);
+    --role-foreground: var(--verifier-foreground);
+    --role-muted: var(--verifier-muted);
+  }
+}
