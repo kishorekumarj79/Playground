@@ -14,6 +14,7 @@ import type {
   HolderStep,
   VerifierStep,
 } from "@/types/playground";
+import { credentialTemplates, templateToSchema } from "@/data/credentialTemplates";
 
 const generateDID = (method: string, identifier?: string): string => {
   const randomHex = Array.from({ length: 32 }, () =>
@@ -47,119 +48,153 @@ const generatePublicKey = (): string => {
   ).join("")}`;
 };
 
-export const credentialSchemas: CredentialSchema[] = [
-  {
-    id: "national-id",
-    name: "National ID",
-    description: "MOSIP-style government identity credential",
-    version: "1.0.0",
-    issuerType: "Government Authority",
-    fields: [
-      { key: "fullName", label: "Full Name", type: "text", required: true },
-      { key: "dateOfBirth", label: "Date of Birth", type: "date", required: true },
-      { key: "nationality", label: "Nationality", type: "select", required: true, options: ["India", "United States", "United Kingdom", "Germany", "France", "Singapore"] },
-      { key: "idNumber", label: "ID Number", type: "text", required: true },
-      { key: "gender", label: "Gender", type: "select", required: false, options: ["Male", "Female", "Other"] },
-    ],
-  },
-  {
-    id: "university-degree",
-    name: "University Degree",
-    description: "Academic credential for higher education",
-    version: "1.0.0",
-    issuerType: "Educational Institution",
-    fields: [
-      { key: "fullName", label: "Graduate Name", type: "text", required: true },
-      { key: "degree", label: "Degree Type", type: "select", required: true, options: ["Bachelor of Science", "Bachelor of Arts", "Master of Science", "Master of Arts", "Doctor of Philosophy"] },
-      { key: "major", label: "Major / Field of Study", type: "text", required: true },
-      { key: "graduationDate", label: "Graduation Date", type: "date", required: true },
-      { key: "honors", label: "Honors", type: "select", required: false, options: ["Summa Cum Laude", "Magna Cum Laude", "Cum Laude", "None"] },
-    ],
-  },
-  {
-    id: "vaccination-certificate",
-    name: "Vaccination Certificate",
-    description: "Health immunization credential",
-    version: "1.0.0",
-    issuerType: "Health Authority",
-    fields: [
-      { key: "fullName", label: "Patient Name", type: "text", required: true },
-      { key: "dateOfBirth", label: "Date of Birth", type: "date", required: true },
-      { key: "vaccineType", label: "Vaccine Type", type: "select", required: true, options: ["COVID-19 (Pfizer)", "COVID-19 (Moderna)", "COVID-19 (AstraZeneca)", "Influenza", "Hepatitis B"] },
-      { key: "doseNumber", label: "Dose Number", type: "select", required: true, options: ["1", "2", "3", "Booster"] },
-      { key: "administrationDate", label: "Administration Date", type: "date", required: true },
-    ],
-  },
-];
+// Convert first template to default schema
+const defaultSchema = templateToSchema(credentialTemplates[0], "india");
 
-export const verificationRequests: VerificationRequest[] = [
-  {
-    id: "age-verification",
-    name: "Proof of Age (18+)",
-    description: "Verify the holder is at least 18 years old",
-    requiredAttributes: ["dateOfBirth"],
-    optionalAttributes: ["fullName"],
-  },
-  {
-    id: "identity-verification",
-    name: "Valid National ID",
-    description: "Verify identity with government-issued credential",
-    requiredAttributes: ["fullName", "idNumber", "nationality"],
-    optionalAttributes: ["dateOfBirth", "gender"],
-  },
-  {
-    id: "academic-verification",
-    name: "Academic Credentials",
-    description: "Verify educational qualifications",
-    requiredAttributes: ["fullName", "degree", "major"],
-    optionalAttributes: ["graduationDate", "honors"],
-  },
-  {
-    id: "vaccination-status",
-    name: "Vaccination Status",
-    description: "Verify immunization records",
-    requiredAttributes: ["fullName", "vaccineType", "doseNumber"],
-    optionalAttributes: ["administrationDate"],
-  },
-];
+// Generate verification requests dynamically from credential templates
+export function generateVerificationRequests(): VerificationRequest[] {
+  return credentialTemplates.map((template) => {
+    // Get required attributes (first 2-3 required fields)
+    const requiredFields = template.fields
+      .filter((f) => f.required)
+      .slice(0, 3)
+      .map((f) => f.key);
+    
+    // Get optional attributes (remaining fields, max 2)
+    const optionalFields = template.fields
+      .filter((f) => !requiredFields.includes(f.key))
+      .slice(0, 2)
+      .map((f) => f.key);
+    
+    // Generate a verification-focused description
+    const verificationPurpose = getVerificationPurpose(template.useCase, template.sector);
+    
+    return {
+      id: `verify-${template.id}`,
+      name: `${template.useCase} Verification`,
+      description: verificationPurpose,
+      requiredAttributes: requiredFields,
+      optionalAttributes: optionalFields,
+    };
+  });
+}
 
-const randomNames = ["Anika Sharma", "Raj Patel", "Maria Santos", "John Chen", "Sarah Johnson", "Mohammed Ali"];
-const randomMajors = ["Computer Science", "Economics", "Physics", "Biology", "Engineering"];
+// Helper to generate verification purpose text
+function getVerificationPurpose(useCase: string, sector: string): string {
+  const purposeMap: Record<string, string> = {
+    "public-sector": "Verify government-issued credentials for authorized access",
+    "financial-services": "Verify financial credentials for regulatory compliance",
+    "healthcare": "Verify healthcare credentials for patient safety",
+    "education": "Verify academic credentials for qualification checks",
+    "employment": "Verify employment credentials for workforce access",
+    "supply-chain": "Verify supply chain credentials for logistics compliance",
+    "real-estate": "Verify property credentials for ownership verification",
+  };
+  
+  return purposeMap[sector] || `Verify ${useCase} credentials`;
+}
 
-const generateRandomIdentity = (schemaId: string): Record<string, string> => {
-  const name = randomNames[Math.floor(Math.random() * randomNames.length)];
-  const birthYear = 1980 + Math.floor(Math.random() * 25);
-  const birthMonth = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
-  const birthDay = String(Math.floor(Math.random() * 28) + 1).padStart(2, "0");
+// Keep a cached version for backward compatibility
+export const verificationRequests: VerificationRequest[] = generateVerificationRequests();
 
-  switch (schemaId) {
-    case "national-id":
-      return {
-        fullName: name,
-        dateOfBirth: `${birthYear}-${birthMonth}-${birthDay}`,
-        nationality: "India",
-        idNumber: `XXXX-XXXX-${Math.floor(1000 + Math.random() * 9000)}`,
-        gender: Math.random() > 0.5 ? "Male" : "Female",
-      };
-    case "university-degree":
-      return {
-        fullName: name,
-        degree: "Bachelor of Science",
-        major: randomMajors[Math.floor(Math.random() * randomMajors.length)],
-        graduationDate: `${2020 + Math.floor(Math.random() * 5)}-06-15`,
-        honors: Math.random() > 0.6 ? "Magna Cum Laude" : "None",
-      };
-    case "vaccination-certificate":
-      return {
-        fullName: name,
-        dateOfBirth: `${birthYear}-${birthMonth}-${birthDay}`,
-        vaccineType: "COVID-19 (Pfizer)",
-        doseNumber: "2",
-        administrationDate: `2024-${birthMonth}-${birthDay}`,
-      };
-    default:
-      return { fullName: name };
+// Demo data pools for generic randomization
+const demoNames = ["Anika Sharma", "Raj Patel", "Maria Santos", "John Chen", "Sarah Johnson", "Mohammed Ali", "Emma Wilson", "Liam Brown", "Sofia Garcia", "James Lee"];
+const demoOrganizations = ["Acme Corp", "Global Industries", "Tech Solutions", "Premier Services", "Apex Holdings", "Delta Enterprises"];
+const demoNumbers = ["XXXX-XXXX", "DOC-", "REF-", "ID-", "LIC-", "CERT-"];
+
+// Generate demo-safe random value based on field key and type
+const generateRandomFieldValue = (field: { key: string; type: string; options?: string[] }): string => {
+  const key = field.key.toLowerCase();
+  
+  // If it's a select field, pick from options
+  if (field.type === "select" && field.options && field.options.length > 0) {
+    return field.options[Math.floor(Math.random() * field.options.length)];
   }
+  
+  // Date fields
+  if (field.type === "date" || key.includes("date") || key.includes("until") || key.includes("issued") || key.includes("expir")) {
+    const isExpiry = key.includes("until") || key.includes("expir") || key.includes("valid");
+    const isBirth = key.includes("birth");
+    
+    if (isBirth) {
+      const year = 1980 + Math.floor(Math.random() * 25);
+      const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
+      const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+    
+    if (isExpiry) {
+      const year = 2025 + Math.floor(Math.random() * 3);
+      const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
+      const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Default to recent past date
+    const year = 2023 + Math.floor(Math.random() * 2);
+    const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
+    const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Name-like fields
+  if (key.includes("name") || key.includes("holder") || key.includes("patient") || key.includes("owner") || key.includes("practitioner") || key.includes("employee") || key.includes("investor") || key.includes("account")) {
+    return demoNames[Math.floor(Math.random() * demoNames.length)];
+  }
+  
+  // ID/Number fields
+  if (key.includes("id") || key.includes("number") || key.includes("license") || key.includes("permit") || key.includes("policy") || key.includes("passport") || key.includes("voter") || key.includes("beneficiary")) {
+    const prefix = demoNumbers[Math.floor(Math.random() * demoNumbers.length)];
+    const suffix = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}${suffix}`;
+  }
+  
+  // Business/Organization fields
+  if (key.includes("business") || key.includes("employer") || key.includes("company") || key.includes("organization")) {
+    return demoOrganizations[Math.floor(Math.random() * demoOrganizations.length)];
+  }
+  
+  // Location fields
+  if (key.includes("constituency") || key.includes("address") || key.includes("location")) {
+    const locations = ["North District", "Central Zone", "East Region", "West Borough", "South Ward"];
+    return locations[Math.floor(Math.random() * locations.length)];
+  }
+  
+  // Medication/Dosage fields
+  if (key.includes("medication") || key.includes("drug")) {
+    const meds = ["Amoxicillin", "Ibuprofen", "Metformin", "Lisinopril", "Omeprazole"];
+    return meds[Math.floor(Math.random() * meds.length)];
+  }
+  
+  if (key.includes("dosage")) {
+    const dosages = ["500mg", "250mg", "100mg", "50mg", "10mg"];
+    return dosages[Math.floor(Math.random() * dosages.length)];
+  }
+  
+  // Property fields
+  if (key.includes("property")) {
+    return `PROP-${Math.floor(10000 + Math.random() * 90000)}`;
+  }
+  
+  // Specialty/Degree fields
+  if (key.includes("specialty") || key.includes("degree") || key.includes("major")) {
+    const specialties = ["Computer Science", "Medicine", "Engineering", "Business", "Law"];
+    return specialties[Math.floor(Math.random() * specialties.length)];
+  }
+  
+  // Default: generate a sensible placeholder
+  return `Demo-${Math.floor(1000 + Math.random() * 9000)}`;
+};
+
+// Generic randomization for any schema
+const generateRandomIdentity = (schema: CredentialSchema): Record<string, string> => {
+  const result: Record<string, string> = {};
+  
+  schema.fields.forEach((field) => {
+    result[field.key] = generateRandomFieldValue(field);
+  });
+  
+  return result;
 };
 
 const initialIssuerConfig: IssuerConfig = {
@@ -172,6 +207,7 @@ const initialIssuerConfig: IssuerConfig = {
 
 const initialState: PlaygroundState = {
   hasStarted: false,
+  templateSelected: false,
   currentRole: "issuer",
   selectedChain: "polygon",
   blockchainAnchoringEnabled: true,
@@ -179,8 +215,9 @@ const initialState: PlaygroundState = {
   uiPreviewEnabled: false,
   consoleOpen: false,
   issuerConfig: initialIssuerConfig,
-  selectedSchema: credentialSchemas[0],
-  customSchemas: [],
+  selectedSchema: defaultSchema,
+  selectedCountry: "", // No default - user must explicitly choose
+  selectedSector: "all",
   issuerStep: "identity",
   holderStep: "empty",
   verifierStep: "request",
@@ -231,7 +268,7 @@ export function usePlayground() {
     setState((prev) => ({ ...prev, blockchainAnchoringEnabled: !prev.blockchainAnchoringEnabled }));
   }, []);
 
-  const setIssuerStep = useCallback((step: "identity" | "schema" | "issue") => {
+  const setIssuerStep = useCallback((step: "identity" | "issue") => {
     setState((prev) => ({ ...prev, issuerStep: step }));
   }, []);
 
@@ -294,26 +331,32 @@ export function usePlayground() {
     }));
   }, [state.issuerConfig.didMethod, state.issuerConfig.issuerName]);
 
-  const selectSchema = useCallback((schemaId: string) => {
-    // First check built-in schemas, then custom schemas
-    const schema = credentialSchemas.find((s) => s.id === schemaId) 
-      || state.customSchemas.find((s) => s.id === schemaId);
-    if (schema) {
-      setState((prev) => ({ ...prev, selectedSchema: schema }));
-    }
-  }, [state.customSchemas]);
-
-  const addCustomSchema = useCallback((schema: CredentialSchema) => {
+  const selectTemplate = useCallback((schema: CredentialSchema, issuerName: string) => {
     setState((prev) => ({
       ...prev,
-      customSchemas: [...prev.customSchemas, schema],
       selectedSchema: schema,
+      issuerConfig: {
+        ...prev.issuerConfig,
+        issuerName: issuerName,
+        // Reset keys when template changes issuer
+        keysGenerated: false,
+        issuerDID: null,
+        publicKey: null,
+      },
     }));
   }, []);
 
+  const setCountry = useCallback((country: string) => {
+    setState((prev) => ({ ...prev, selectedCountry: country }));
+  }, []);
+
+  const setSector = useCallback((sector: string) => {
+    setState((prev) => ({ ...prev, selectedSector: sector }));
+  }, []);
+
   const getRandomIdentity = useCallback(() => {
-    return generateRandomIdentity(state.selectedSchema.id);
-  }, [state.selectedSchema.id]);
+    return generateRandomIdentity(state.selectedSchema);
+  }, [state.selectedSchema]);
 
   const issueCredential = useCallback(
     (subjectData: Record<string, unknown>) => {
@@ -597,9 +640,22 @@ export function usePlayground() {
     setState(initialState);
   }, []);
 
+  const confirmTemplateSelection = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      templateSelected: true,
+    }));
+  }, []);
+
+  const showTemplateModal = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      templateSelected: false,
+    }));
+  }, []);
+
   return {
     state,
-    credentialSchemas,
     verificationRequests,
     startPlayground,
     setRole,
@@ -613,8 +669,9 @@ export function usePlayground() {
     setVerifierStep,
     updateIssuerConfig,
     generateIssuerKeys,
-    selectSchema,
-    addCustomSchema,
+    selectTemplate,
+    setCountry,
+    setSector,
     getRandomIdentity,
     issueCredential,
     scanCredential,
@@ -629,5 +686,7 @@ export function usePlayground() {
     cancelVerification,
     verifyCredential,
     resetPlayground,
+    confirmTemplateSelection,
+    showTemplateModal,
   };
 }

@@ -108,6 +108,7 @@ export interface ConsoleEvent {
 
 export interface PlaygroundState {
   hasStarted: boolean;
+  templateSelected: boolean;
   currentRole: Role;
   selectedChain: Chain;
   blockchainAnchoringEnabled: boolean;
@@ -116,8 +117,9 @@ export interface PlaygroundState {
   consoleOpen: boolean;
   issuerConfig: IssuerConfig;
   selectedSchema: CredentialSchema;
-  customSchemas: CredentialSchema[];
-  issuerStep: "identity" | "schema" | "issue";
+  selectedCountry: string;
+  selectedSector: string;
+  issuerStep: "identity" | "issue";
   holderStep: HolderStep;
   verifierStep: VerifierStep;
   issuedCredential: VerifiableCredential | null;

@@ -21,8 +21,7 @@ interface CenterStageProps {
   uiPreviewEnabled: boolean;
   issuerConfig: IssuerConfig;
   selectedSchema: CredentialSchema;
-  availableSchemas: CredentialSchema[];
-  issuerStep: "identity" | "schema" | "issue";
+  issuerStep: "identity" | "issue";
   holderStep: HolderStep;
   verifierStep: VerifierStep;
   credential: VerifiableCredential | null;
@@ -34,9 +33,7 @@ interface CenterStageProps {
   sharedAttributes: string[];
   onUpdateIssuerConfig: (config: Partial<IssuerConfig>) => void;
   onGenerateKeys: () => void;
-  onSelectSchema: (schemaId: string) => void;
-  onAddCustomSchema: (schema: CredentialSchema) => void;
-  onSetIssuerStep: (step: "identity" | "schema" | "issue") => void;
+  onSetIssuerStep: (step: "identity" | "issue") => void;
   onGetRandomIdentity: () => Record<string, string>;
   onIssueCredential: (data: Record<string, unknown>) => void;
   onScanCredential: () => void;
@@ -59,7 +56,6 @@ export function CenterStage({
   uiPreviewEnabled,
   issuerConfig,
   selectedSchema,
-  availableSchemas,
   issuerStep,
   holderStep,
   verifierStep,
@@ -72,8 +68,6 @@ export function CenterStage({
   sharedAttributes,
   onUpdateIssuerConfig,
   onGenerateKeys,
-  onSelectSchema,
-  onAddCustomSchema,
   onSetIssuerStep,
   onGetRandomIdentity,
   onIssueCredential,
@@ -98,13 +92,10 @@ export function CenterStage({
           uiPreviewEnabled={uiPreviewEnabled}
           issuerConfig={issuerConfig}
           selectedSchema={selectedSchema}
-          availableSchemas={availableSchemas}
           issuerStep={issuerStep}
           issuedCredential={credential}
           onUpdateIssuerConfig={onUpdateIssuerConfig}
           onGenerateKeys={onGenerateKeys}
-          onSelectSchema={onSelectSchema}
-          onAddCustomSchema={onAddCustomSchema}
           onSetStep={onSetIssuerStep}
           onGetRandomIdentity={onGetRandomIdentity}
           onIssue={onIssueCredential}

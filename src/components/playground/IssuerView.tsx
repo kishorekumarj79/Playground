@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   Key,
-  FileJson,
   ArrowRight,
   ArrowLeft,
   Check,
   Shuffle,
   ChevronRight,
-  Plus,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { LiveCredentialPreview } from "./preview/LiveCredentialPreview";
-import { CreateSchemaModal } from "./issuer/CreateSchemaModal";
 import type {
   Chain,
   IssuerConfig,
@@ -37,14 +35,11 @@ interface IssuerViewProps {
   uiPreviewEnabled: boolean;
   issuerConfig: IssuerConfig;
   selectedSchema: CredentialSchema;
-  availableSchemas: CredentialSchema[];
-  issuerStep: "identity" | "schema" | "issue";
+  issuerStep: "identity" | "issue";
   issuedCredential: VerifiableCredential | null;
   onUpdateIssuerConfig: (config: Partial<IssuerConfig>) => void;
   onGenerateKeys: () => void;
-  onSelectSchema: (schemaId: string) => void;
-  onAddCustomSchema: (schema: CredentialSchema) => void;
-  onSetStep: (step: "identity" | "schema" | "issue") => void;
+  onSetStep: (step: "identity" | "issue") => void;
   onGetRandomIdentity: () => Record<string, string>;
   onIssue: (data: Record<string, unknown>) => void;
 }
@@ -61,13 +56,10 @@ export function IssuerView({
   uiPreviewEnabled,
   issuerConfig,
   selectedSchema,
-  availableSchemas,
   issuerStep,
   issuedCredential,
   onUpdateIssuerConfig,
   onGenerateKeys,
-  onSelectSchema,
-  onAddCustomSchema,
   onSetStep,
   onGetRandomIdentity,
   onIssue,
@@ -75,7 +67,6 @@ export function IssuerView({
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [isIssuing, setIsIssuing] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [showCreateSchemaModal, setShowCreateSchemaModal] = useState(false);
 
   useEffect(() => {
     const initialData: Record<string, string> = {};
@@ -100,7 +91,6 @@ export function IssuerView({
   };
 
   const canProceedFromIdentity = issuerConfig.keysGenerated;
-  const canProceedFromSchema = selectedSchema !== null;
   const canIssue = Object.entries(formData).every(
     ([key, value]) =>
       !selectedSchema.fields.find((f) => f.key === key)?.required || value.trim() !== ""
@@ -108,8 +98,9 @@ export function IssuerView({
 
   // Show credential preview panel when toggle is ON
   const showPreviewPanel = uiPreviewEnabled;
-  // Preview should show as soon as we're on the issue step (or have a schema)
-  const showSchemaPreview = issuerStep === "schema" || issuerStep === "issue";
+  // Preview should ALWAYS show when template is selected (schema exists)
+  // This ensures preview is visible immediately after template selection, not just on issue step
+  const showSchemaPreview = selectedSchema && selectedSchema.id !== "";
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -136,20 +127,22 @@ export function IssuerView({
         </p>
       </div>
 
-      {/* Step Indicator */}
+      {/* Step Indicator - 2 steps now: Authority Setup → Issue */}
       <div className="px-4 sm:px-8 py-3 sm:py-4 border-b border-border bg-muted/30 shrink-0 overflow-x-auto">
         <div className="flex items-center gap-2 min-w-max">
-          {["identity", "schema", "issue"].map((step, index) => {
-            const isActive = issuerStep === step;
+          {[
+            { id: "identity", label: "Authority Setup", shortLabel: "Setup" },
+            { id: "issue", label: "Issue Credential", shortLabel: "Issue" },
+          ].map((step, index) => {
+            const isActive = issuerStep === step.id;
             const isCompleted =
-              (step === "identity" && issuerConfig.keysGenerated && issuerStep !== "identity") ||
-              (step === "schema" && issuerStep === "issue");
+              step.id === "identity" && issuerConfig.keysGenerated && issuerStep !== "identity";
 
             return (
-              <div key={step} className="flex items-center gap-2">
+              <div key={step.id} className="flex items-center gap-2">
                 <button
-                  onClick={() => onSetStep(step as "identity" | "schema" | "issue")}
-                  disabled={step === "schema" && !canProceedFromIdentity}
+                  onClick={() => onSetStep(step.id as "identity" | "issue")}
+                  disabled={step.id === "issue" && !canProceedFromIdentity}
                   className={cn(
                     "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full text-xs font-medium transition-all",
                     isActive && "bg-primary text-primary-foreground",
@@ -164,10 +157,10 @@ export function IssuerView({
                       {index + 1}
                     </span>
                   )}
-                  <span className="capitalize hidden sm:inline">{step === "identity" ? "Identity Setup" : step === "schema" ? "Schema" : "Issue"}</span>
-                  <span className="capitalize sm:hidden">{step === "identity" ? "Setup" : step === "schema" ? "Schema" : "Issue"}</span>
+                  <span className="hidden sm:inline">{step.label}</span>
+                  <span className="sm:hidden">{step.shortLabel}</span>
                 </button>
-                {index < 2 && (
+                {index < 1 && (
                   <ChevronRight className="w-4 h-4 text-border" />
                 )}
               </div>
@@ -192,10 +185,10 @@ export function IssuerView({
             <div className="space-y-6">
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-1">
-                  Issuer Identity Setup
+                  Issuing Authority Setup
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Configure your DID method and generate cryptographic keys
+                  Configure your authority identity and generate cryptographic keys
                 </p>
               </div>
 
@@ -231,7 +224,7 @@ export function IssuerView({
 
                 <div className="space-y-2">
                   <Label htmlFor="issuerName" className="text-sm">
-                    Issuer Name
+                    Issuing Authority Name
                   </Label>
                   <Input
                     id="issuerName"
@@ -263,7 +256,7 @@ export function IssuerView({
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                        Issuer DID
+                        Issuing Authority Identifier
                       </p>
                       <p className="text-xs font-mono text-foreground break-all">
                         {issuerConfig.issuerDID}
@@ -274,128 +267,17 @@ export function IssuerView({
               </div>
 
               <Button
-                onClick={() => onSetStep("schema")}
+                onClick={() => onSetStep("issue")}
                 disabled={!canProceedFromIdentity}
                 className="w-full h-11 gap-2"
               >
-                Continue to Schema Selection
+                Continue to Issue Credential
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           )}
 
-          {/* Step 2: Schema Selection */}
-          {issuerStep === "schema" && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-1">
-                  Credential Schema Selection
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Choose the type of credential to issue
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Schema Type
-                  </Label>
-                  <Select
-                    value={selectedSchema.id}
-                    onValueChange={(value) => {
-                      if (value === "__create_new__") {
-                        setShowCreateSchemaModal(true);
-                      } else {
-                        onSelectSchema(value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableSchemas.map((schema) => (
-                        <SelectItem key={schema.id} value={schema.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{schema.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              — {schema.issuerType}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="__create_new__">
-                        <div className="flex items-center gap-2 text-primary">
-                          <Plus className="w-3 h-3" />
-                          <span>Create New Schema</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Schema Preview */}
-                <div className="p-4 rounded-lg border border-border bg-muted/30">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {selectedSchema.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedSchema.description}
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                      v{selectedSchema.version}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                      Schema Fields
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedSchema.fields.map((field) => (
-                        <span
-                          key={field.key}
-                          className={cn(
-                            "text-[10px] px-2 py-0.5 rounded",
-                            field.required
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {field.label}
-                          {field.required && " *"}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => onSetStep("identity")}
-                  className="h-11 gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </Button>
-                <Button
-                  onClick={() => onSetStep("issue")}
-                  disabled={!canProceedFromSchema}
-                  className="flex-1 h-11 gap-2"
-                >
-                  Continue to Issuance
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Issue Credential */}
+          {/* Step 2: Issue Credential */}
           {issuerStep === "issue" && (
             <div className="space-y-6">
               <div className="flex items-start justify-between">
@@ -404,7 +286,7 @@ export function IssuerView({
                     Issue {selectedSchema.name}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Enter subject information or randomize for demo
+                    Enter credential holder information or randomize for demo
                   </p>
                 </div>
                 <Button
@@ -516,7 +398,7 @@ export function IssuerView({
               <div className="flex gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => onSetStep("schema")}
+                  onClick={() => onSetStep("identity")}
                   className="h-11 gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -557,7 +439,7 @@ export function IssuerView({
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      <FileJson className="w-4 h-4" />
+                      <FileText className="w-4 h-4" />
                       Issue Credential
                     </span>
                   )}
@@ -573,7 +455,7 @@ export function IssuerView({
               <div className="sticky top-0">
                 <div className="mb-3">
                   <h4 className="text-sm font-medium text-foreground">
-                    Credential UI Preview
+                    Credential Preview
                   </h4>
                 </div>
                 {showSchemaPreview ? (
@@ -586,10 +468,10 @@ export function IssuerView({
                 ) : (
                   <div className="rounded-xl border border-dashed border-border bg-muted/10 p-8 text-center">
                     <div className="w-12 h-12 rounded-lg bg-muted mx-auto mb-3 flex items-center justify-center">
-                      <FileJson className="w-6 h-6 text-muted-foreground/50" />
+                      <FileText className="w-6 h-6 text-muted-foreground/50" />
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Select a credential schema to preview its format
+                      Select a credential template to preview its format
                     </p>
                   </div>
                 )}
@@ -598,13 +480,6 @@ export function IssuerView({
           )}
         </div>
       </div>
-
-      {/* Create Schema Modal */}
-      <CreateSchemaModal
-        open={showCreateSchemaModal}
-        onOpenChange={setShowCreateSchemaModal}
-        onCreateSchema={onAddCustomSchema}
-      />
     </div>
   );
 }
