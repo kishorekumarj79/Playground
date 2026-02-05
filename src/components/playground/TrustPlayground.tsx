@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback,useEffect } from "react";
 import { usePlayground } from "@/hooks/usePlayground";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { OrientationScreen } from "./OrientationScreen";
@@ -65,6 +65,17 @@ export function TrustPlayground() {
     setShowPostVerificationCTA(false);
     resetPlayground();
   }, [resetPlayground]);
+
+    useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shouldStart = params.get("start") === "true";
+    const devMode = params.get("dev") === "true";
+
+    if (shouldStart && !state.hasStarted) {
+      startPlayground(devMode);
+    }
+  }, [state.hasStarted, startPlayground, toggleDevMode, toggleConsole]);
+
 
   // Show orientation screen if not started
   if (!state.hasStarted) {
