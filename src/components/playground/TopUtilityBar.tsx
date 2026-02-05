@@ -1,4 +1,4 @@
-import { RotateCcw, Code2, ChevronDown, CreditCard, Link2 } from "lucide-react";
+import { RotateCcw, Code2, ChevronDown, CreditCard, Link2, Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -73,7 +73,9 @@ export function TopUtilityBar({
         {/* Blockchain Anchoring Toggle */}
         <div className="flex items-center gap-2">
           <Link2 className="w-4 h-4 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Anchoring</span>
+          <span className="text-xs text-muted-foreground">
+            {blockchainAnchoringEnabled ? "On-chain" : "Off-chain"}
+          </span>
           <Switch
             checked={blockchainAnchoringEnabled}
             onCheckedChange={onBlockchainAnchoringToggle}
@@ -142,6 +144,18 @@ export function TopUtilityBar({
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span className="text-xs">Reset</span>
+        </Button>
+
+        {/* Book Demo CTA - Desktop */}
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => window.open("https://calendly.com", "_blank")}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          Book Demo
+          <ExternalLink className="w-3 h-3" />
         </Button>
       </div>
     </header>

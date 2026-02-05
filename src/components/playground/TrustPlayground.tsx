@@ -10,6 +10,7 @@ import { CenterStage } from "./CenterStage";
 import { DevConsole } from "./DevConsole";
 import { MobileDevConsole } from "./MobileDevConsole";
 import { BottomFooter } from "./BottomFooter";
+import { TemplateSelectionModal } from "./issuer/TemplateSelectionModal";
 
 export function TrustPlayground() {
   const isMobile = useIsMobile();
@@ -17,7 +18,6 @@ export function TrustPlayground() {
 
   const {
     state,
-    credentialSchemas,
     verificationRequests,
     startPlayground,
     setRole,
@@ -29,8 +29,9 @@ export function TrustPlayground() {
     setIssuerStep,
     updateIssuerConfig,
     generateIssuerKeys,
-    selectSchema,
-    addCustomSchema,
+    selectTemplate,
+    setCountry,
+    setSector,
     getRandomIdentity,
     issueCredential,
     scanCredential,
@@ -45,6 +46,9 @@ export function TrustPlayground() {
     cancelVerification,
     verifyCredential,
     resetPlayground,
+    confirmTemplateSelection,
+    showTemplateModal,
+    skipTemplateSelection,
   } = usePlayground();
 
   // Handle verification with post-verification CTA
@@ -78,8 +82,22 @@ export function TrustPlayground() {
     return <OrientationScreen onStart={startPlayground} />;
   }
 
+  // Show template selection modal if on issuer role and template not selected
+  const showTemplateSelectionModal = state.currentRole === "issuer" && !state.templateSelected;
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
+      {/* Template Selection Modal - Pre-lifecycle */}
+      <TemplateSelectionModal
+        isOpen={showTemplateSelectionModal}
+        selectedCountry={state.selectedCountry}
+        selectedSector={state.selectedSector}
+        onCountryChange={setCountry}
+        onSectorChange={setSector}
+        onSelectTemplate={selectTemplate}
+        onConfirm={confirmTemplateSelection}
+        onSkip={skipTemplateSelection}
+      />
       {/* Top Utility Bar - Responsive */}
       {isMobile ? (
         <MobileTopBar
@@ -149,7 +167,6 @@ export function TrustPlayground() {
           uiPreviewEnabled={state.uiPreviewEnabled}
           issuerConfig={state.issuerConfig}
           selectedSchema={state.selectedSchema}
-          availableSchemas={[...credentialSchemas, ...state.customSchemas]}
           issuerStep={state.issuerStep}
           holderStep={state.holderStep}
           verifierStep={state.verifierStep}
@@ -162,8 +179,6 @@ export function TrustPlayground() {
           sharedAttributes={state.sharedAttributes}
           onUpdateIssuerConfig={updateIssuerConfig}
           onGenerateKeys={generateIssuerKeys}
-          onSelectSchema={selectSchema}
-          onAddCustomSchema={addCustomSchema}
           onSetIssuerStep={setIssuerStep}
           onGetRandomIdentity={getRandomIdentity}
           onIssueCredential={issueCredential}
