@@ -48,6 +48,7 @@ export function TrustPlayground() {
     resetPlayground,
     confirmTemplateSelection,
     showTemplateModal,
+    skipTemplateSelection,
   } = usePlayground();
 
   // Handle verification with post-verification CTA
@@ -84,6 +85,7 @@ export function TrustPlayground() {
         onSectorChange={setSector}
         onSelectTemplate={selectTemplate}
         onConfirm={confirmTemplateSelection}
+        onSkip={skipTemplateSelection}
       />
       {/* Top Utility Bar - Responsive */}
       {isMobile ? (

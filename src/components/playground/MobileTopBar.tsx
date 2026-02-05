@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RotateCcw, Code2, ChevronDown, CreditCard, Link2, Settings2 } from "lucide-react";
+import { RotateCcw, Code2, ChevronDown, CreditCard, Link2, Settings2, Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -77,6 +77,17 @@ export function MobileTopBar({
 
       {/* Right actions */}
       <div className="flex items-center gap-2">
+        {/* Book Demo CTA - Mobile */}
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1 text-xs px-2"
+          onClick={() => window.open("https://calendly.com", "_blank")}
+        >
+          <Calendar className="w-3 h-3" />
+          Demo
+        </Button>
+
         <Button
           variant="ghost"
           size="sm"
@@ -102,7 +113,12 @@ export function MobileTopBar({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Link2 className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">Blockchain Anchoring</span>
+                    <div>
+                      <span className="text-sm">Verification Mode</span>
+                      <p className="text-[10px] text-muted-foreground">
+                        {blockchainAnchoringEnabled ? "On-chain (blockchain)" : "Off-chain (no blockchain)"}
+                      </p>
+                    </div>
                   </div>
                   <Switch
                     checked={blockchainAnchoringEnabled}

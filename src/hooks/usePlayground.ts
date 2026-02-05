@@ -654,6 +654,27 @@ export function usePlayground() {
     }));
   }, []);
 
+  // Skip template selection - auto-select default template
+  const skipTemplateSelection = useCallback(() => {
+    // Select the first template (National ID) as default
+    const defaultTemplate = credentialTemplates[0];
+    const schema = templateToSchema(defaultTemplate, "global");
+    const issuerName = defaultTemplate.issuerAuthority.global || defaultTemplate.issuerType;
+    
+    setState((prev) => ({
+      ...prev,
+      templateSelected: true,
+      selectedSchema: schema,
+      issuerConfig: {
+        ...prev.issuerConfig,
+        issuerName: issuerName,
+        keysGenerated: false,
+        issuerDID: null,
+        publicKey: null,
+      },
+    }));
+  }, []);
+
   return {
     state,
     verificationRequests,
@@ -688,5 +709,6 @@ export function usePlayground() {
     resetPlayground,
     confirmTemplateSelection,
     showTemplateModal,
+    skipTemplateSelection,
   };
 }

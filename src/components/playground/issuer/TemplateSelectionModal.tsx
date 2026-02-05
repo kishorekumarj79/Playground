@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, ChevronDown, ChevronRight, Building2, Check } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Building2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ interface TemplateSelectionModalProps {
   onSectorChange: (sector: string) => void;
   onSelectTemplate: (schema: CredentialSchema, issuerName: string) => void;
   onConfirm: () => void;
+  onSkip: () => void;
 }
 
 export function TemplateSelectionModal({
@@ -40,6 +41,7 @@ export function TemplateSelectionModal({
   onSectorChange,
   onSelectTemplate,
   onConfirm,
+  onSkip,
 }: TemplateSelectionModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSectors, setExpandedSectors] = useState<Set<string>>(new Set(["public-sector"]));
@@ -122,13 +124,22 @@ export function TemplateSelectionModal({
       
       {/* Modal */}
       <div className="relative w-full max-w-3xl max-h-[90vh] mx-4 bg-card border border-border rounded-xl shadow-xl flex flex-col overflow-hidden">
+        {/* Close Button */}
+        <button
+          onClick={onSkip}
+          className="absolute top-4 right-4 z-10 p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         {/* Header */}
         <div className="px-6 py-5 border-b border-border shrink-0">
           <h2 className="text-lg font-semibold text-foreground">
-            Choose a Credential Template
+            Choose a Use Case / Credential Template
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Select the type of credential you want to issue. This will configure your demo experience.
+            Select a use case to see how Klefki enables real-world trust flows.
           </p>
         </div>
 
@@ -269,18 +280,20 @@ export function TemplateSelectionModal({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border bg-muted/30 shrink-0">
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-xs text-muted-foreground">
-              {selectedTemplateId 
-                ? "Template selected. Click 'Start Issuance' to continue."
-                : "Select a template to proceed"}
-            </p>
+          <div className="flex items-center justify-end gap-3">
+            <Button
+              variant="ghost"
+              onClick={onSkip}
+              className="text-muted-foreground"
+            >
+              Skip for now
+            </Button>
             <Button
               onClick={handleConfirm}
               disabled={!selectedTemplateId}
               className="min-w-[140px]"
             >
-              Start Issuance
+              Use Selected Template
             </Button>
           </div>
         </div>
