@@ -2,31 +2,57 @@ import { useState } from "react";
 import { Linkedin, Send, CheckCircle2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import emailjs from "@emailjs/browser";
 
 interface BottomFooterProps {
   showPostVerificationCTA?: boolean;
   onDismissPostVerificationCTA?: () => void;
+  onBookDemo?: () => void;
 }
 
-export function BottomFooter({ 
+export function BottomFooter({
   showPostVerificationCTA = false,
-  onDismissPostVerificationCTA 
+  onDismissPostVerificationCTA,
+  onBookDemo
 }: BottomFooterProps) {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isError, setIsError] = useState(false);
 
-  const handleSubmitEmail = (e: React.FormEvent) => {
+  const handleSubmitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    
+
     setIsSubmitting(true);
-    // Simulate submission
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setIsError(false);
+
+    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+    try {
+      await emailjs.send(
+        SERVICE_ID,
+        TEMPLATE_ID,
+        {
+          name: "Playground User",
+          email: email,
+          message: `The user has requested a technical brief via the playground footer. User Email: ${email}`,
+          time: new Date().toLocaleString(),
+          reply_to: import.meta.env.VITE_CONTACT_RECIPIENT || "info@vlinder.io",
+        },
+        PUBLIC_KEY
+      );
+
       setIsSubmitted(true);
       setEmail("");
-    }, 800);
+    } catch (error) {
+      console.error('EmailJS Error:', error);
+      setIsError(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -38,18 +64,18 @@ export function BottomFooter({
             This verification flow can be deployed in real systems.
           </p>
           <div className="flex items-center gap-2">
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               className="h-8 gap-1.5 text-xs"
-              onClick={() => window.open("https://calendly.com", "_blank")}
+              onClick={onBookDemo}
             >
               Talk to Us
               <ExternalLink className="w-3 h-3" />
             </Button>
             {onDismissPostVerificationCTA && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-8 text-xs text-muted-foreground"
                 onClick={onDismissPostVerificationCTA}
               >
@@ -74,37 +100,44 @@ export function BottomFooter({
         </a>
 
         {/* Right: Lead Capture */}
-        <div className="flex items-center gap-3">
-          {!isSubmitted ? (
-            <form onSubmit={handleSubmitEmail} className="flex gap-2 items-center">
-              <Input
-                type="email"
-                placeholder="Work email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-7 text-xs w-48"
-                required
-              />
-              <Button 
-                type="submit" 
-                variant="secondary" 
-                size="sm" 
-                className="h-7 gap-1 text-xs px-2"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "..." : (
-                  <>
-                    <Send className="w-3 h-3" />
-                    Get Brief
-                  </>
-                )}
-              </Button>
-            </form>
-          ) : (
-            <div className="flex items-center gap-1.5 text-xs text-success">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Thanks! We'll send the brief.</span>
-            </div>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-3">
+            {!isSubmitted ? (
+              <form onSubmit={handleSubmitEmail} className="flex gap-2 items-center">
+                <Input
+                  type="email"
+                  placeholder="Work email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-7 text-xs w-48"
+                  required
+                />
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 gap-1 text-xs px-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "..." : (
+                    <>
+                      <Send className="w-3 h-3" />
+                      Get Brief
+                    </>
+                  )}
+                </Button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-success">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Thanks! We'll send the brief.</span>
+              </div>
+            )}
+          </div>
+          {isError && (
+            <span className="text-[10px] text-destructive font-medium">
+              Failed to send. Please try again.
+            </span>
           )}
         </div>
       </div>
