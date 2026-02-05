@@ -27,6 +27,7 @@ interface MobileTopBarProps {
   onDevModeToggle: () => void;
   onUiPreviewToggle: () => void;
   onReset: () => void;
+  onBookDemo: () => void;
 }
 
 const chains: { value: Chain; label: string; network: string }[] = [
@@ -46,6 +47,7 @@ export function MobileTopBar({
   onDevModeToggle,
   onUiPreviewToggle,
   onReset,
+  onBookDemo,
 }: MobileTopBarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const currentChain = chains.find((c) => c.value === selectedChain);
@@ -54,13 +56,13 @@ export function MobileTopBar({
     <header className="h-12 border-b border-border bg-background flex items-center justify-between px-3">
       {/* Logo */}
       <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-            <img
-              src="/images/klefki-logo.png"
-              alt="Klefki Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+          <img
+            src="/images/klefki-logo.png"
+            alt="Klefki Logo"
+            className="w-full h-full object-contain"
+          />
+        </div>
         <div>
           <h1 className="text-xs font-semibold text-foreground leading-none">
             Klefki
@@ -76,7 +78,7 @@ export function MobileTopBar({
           size="sm"
           variant="outline"
           className="h-8 gap-1 text-xs px-2"
-          onClick={() => window.open("https://calendly.com", "_blank")}
+          onClick={onBookDemo}
         >
           <Calendar className="w-3 h-3" />
           Demo

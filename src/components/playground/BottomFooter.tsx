@@ -7,11 +7,13 @@ import emailjs from "@emailjs/browser";
 interface BottomFooterProps {
   showPostVerificationCTA?: boolean;
   onDismissPostVerificationCTA?: () => void;
+  onBookDemo?: () => void;
 }
 
 export function BottomFooter({
   showPostVerificationCTA = false,
-  onDismissPostVerificationCTA
+  onDismissPostVerificationCTA,
+  onBookDemo
 }: BottomFooterProps) {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -65,7 +67,7 @@ export function BottomFooter({
             <Button
               size="sm"
               className="h-8 gap-1.5 text-xs"
-              onClick={() => window.open("https://calendly.com", "_blank")}
+              onClick={onBookDemo}
             >
               Talk to Us
               <ExternalLink className="w-3 h-3" />
