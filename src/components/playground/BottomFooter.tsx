@@ -112,7 +112,7 @@ export function BottomFooter({
       {/* Bottom bar - Copyright only */}
       <div className="px-4 sm:px-8 py-2 border-t border-border/50 bg-background/50">
         <span className="text-[11px] text-muted-foreground">
-          All rights reserved © 2022 vlinder.io
+          All rights reserved © 2026 vlinder Inc.
         </span>
       </div>
     </footer>

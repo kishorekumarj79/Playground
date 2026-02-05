@@ -40,7 +40,7 @@ export function OrientationScreen({ onStart }: OrientationScreenProps) {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            Decentralized Identity Demo
+            Verifiable Credentials Demo
           </div>
 
           {/* Headline */}
@@ -164,7 +164,7 @@ export function OrientationScreen({ onStart }: OrientationScreenProps) {
       {/* Footer */}
       <footer className="h-12 border-t border-border px-6 flex items-center justify-center">
         <span className="text-xs text-muted-foreground">
-          © 2024 Klefki Labs · Built for MOSIP Ecosystem
+          © 2026 vlinder Inc. · Built for MOSIP Ecosystem
         </span>
       </footer>
     </div>
