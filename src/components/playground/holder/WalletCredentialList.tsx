@@ -7,12 +7,14 @@ import type { VerifiableCredential, BlockchainAnchor } from "@/types/playground"
 interface WalletCredentialListProps {
   credentials: VerifiableCredential[];
   blockchainAnchor: BlockchainAnchor | null;
+  devModeEnabled?: boolean;
   onPresentToVerifier: () => void;
 }
 
 export function WalletCredentialList({ 
   credentials, 
   blockchainAnchor,
+  devModeEnabled = false,
   onPresentToVerifier 
 }: WalletCredentialListProps) {
   const [expandedIndex, setExpandedIndex] = useState<number>(0);
@@ -26,6 +28,7 @@ export function WalletCredentialList({
             key={credential.credentialSubject.id}
             credential={credential}
             blockchainAnchor={blockchainAnchor}
+            devModeEnabled={devModeEnabled}
             isExpanded={expandedIndex === index}
             onToggle={() => setExpandedIndex(expandedIndex === index ? -1 : index)}
           />

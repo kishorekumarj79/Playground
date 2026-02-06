@@ -19,6 +19,7 @@ interface CenterStageProps {
   selectedChain: Chain;
   blockchainAnchoringEnabled: boolean;
   uiPreviewEnabled: boolean;
+  devModeEnabled: boolean;
   issuerConfig: IssuerConfig;
   selectedSchema: CredentialSchema;
   issuerStep: "identity" | "issue";
@@ -54,6 +55,7 @@ export function CenterStage({
   selectedChain,
   blockchainAnchoringEnabled,
   uiPreviewEnabled,
+  devModeEnabled,
   issuerConfig,
   selectedSchema,
   issuerStep,
@@ -90,6 +92,7 @@ export function CenterStage({
           selectedChain={selectedChain}
           blockchainAnchoringEnabled={blockchainAnchoringEnabled}
           uiPreviewEnabled={uiPreviewEnabled}
+          devModeEnabled={devModeEnabled}
           issuerConfig={issuerConfig}
           selectedSchema={selectedSchema}
           issuerStep={issuerStep}
@@ -108,6 +111,7 @@ export function CenterStage({
           pendingCredential={credential}
           walletCredentials={walletCredentials}
           blockchainAnchor={blockchainAnchor}
+          devModeEnabled={devModeEnabled}
           onScanCredential={onScanCredential}
           onScanComplete={onScanComplete}
           onAcceptCredential={onAcceptCredential}
@@ -123,6 +127,7 @@ export function CenterStage({
           walletCredentials={walletCredentials}
           verificationResult={verificationResult}
           blockchainAnchor={blockchainAnchor}
+          devModeEnabled={devModeEnabled}
           verificationRequests={verificationRequests}
           selectedVerificationRequest={selectedVerificationRequest}
           sharedAttributes={sharedAttributes}

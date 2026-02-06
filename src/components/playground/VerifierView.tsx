@@ -18,6 +18,7 @@ interface VerifierViewProps {
   walletCredentials: VerifiableCredential[];
   verificationResult: VerificationResult | null;
   blockchainAnchor: BlockchainAnchor | null;
+  devModeEnabled?: boolean;
   verificationRequests: VerificationRequest[];
   selectedVerificationRequest: VerificationRequest | null;
   sharedAttributes: string[];
@@ -35,6 +36,7 @@ export function VerifierView({
   walletCredentials,
   verificationResult,
   blockchainAnchor,
+  devModeEnabled = false,
   verificationRequests,
   selectedVerificationRequest,
   sharedAttributes,
@@ -52,14 +54,14 @@ export function VerifierView({
   useEffect(() => {
     if (verifierStep === "verifying" && !verificationTriggeredRef.current) {
       verificationTriggeredRef.current = true;
-
+      
       const timer = setTimeout(() => {
         onVerify();
       }, 2000);
-
+      
       return () => clearTimeout(timer);
     }
-
+    
     // Reset the ref when we leave the verifying state
     if (verifierStep !== "verifying") {
       verificationTriggeredRef.current = false;
@@ -84,22 +86,28 @@ export function VerifierView({
   return (
     <div className="flex-1 flex flex-col overflow-auto">
       {/* Header */}
-      <div className="px-4 sm:px-8 py-2 border-b border-border">
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-0.5">
-          <span className="w-4 h-4 rounded bg-verifier flex items-center justify-center text-verifier-foreground text-[8px] font-semibold">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-border">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <span className="w-5 h-5 rounded bg-verifier flex items-center justify-center text-verifier-foreground text-[10px] font-semibold">
             3
           </span>
           <span>Service Provider</span>
         </div>
-        <h2 className="text-sm font-semibold text-foreground leading-none">
+        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
           Klefki Verify
         </h2>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          {devModeEnabled 
+            ? "Request and verify credentials with selective disclosure"
+            : "Request and verify digital credentials from holders"
+          }
+        </p>
       </div>
 
-      <div className="flex-1 p-3 sm:p-5 overflow-auto">
+      <div className="flex-1 p-4 sm:p-8 overflow-auto">
         {/* Request Builder Step */}
         {verifierStep === "request" && (
-          <div className="max-w-xl mx-auto py-2">
+          <div className="max-w-xl mx-auto">
             <ProofRequestBuilder
               verificationRequests={verificationRequests}
               selectedRequest={selectedVerificationRequest}
@@ -139,7 +147,7 @@ export function VerifierView({
                 Verifying Credential
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Running cryptographic verification checks...
+                {devModeEnabled ? "Running cryptographic verification checks..." : "Checking credential authenticity..."}
               </p>
             </div>
           </div>
@@ -151,6 +159,7 @@ export function VerifierView({
             <VerificationResultDisplay
               result={verificationResult}
               blockchainAnchor={blockchainAnchor}
+              devModeEnabled={devModeEnabled}
             />
           </div>
         )}

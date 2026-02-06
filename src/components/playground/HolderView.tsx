@@ -11,6 +11,7 @@ interface HolderViewProps {
   pendingCredential: VerifiableCredential | null;
   walletCredentials: VerifiableCredential[];
   blockchainAnchor: BlockchainAnchor | null;
+  devModeEnabled?: boolean;
   onScanCredential: () => void;
   onScanComplete: () => void;
   onAcceptCredential: () => void;
@@ -23,6 +24,7 @@ export function HolderView({
   pendingCredential,
   walletCredentials,
   blockchainAnchor,
+  devModeEnabled = false,
   onScanCredential,
   onScanComplete,
   onAcceptCredential,
@@ -34,16 +36,19 @@ export function HolderView({
   return (
     <div className="flex-1 flex flex-col overflow-auto">
       {/* Header */}
-      <div className="px-4 sm:px-8 py-2 border-b border-border">
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-0.5">
-          <span className="w-4 h-4 rounded bg-holder flex items-center justify-center text-holder-foreground text-[8px] font-semibold">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-border">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+          <span className="w-5 h-5 rounded bg-holder flex items-center justify-center text-holder-foreground text-[10px] font-semibold">
             2
           </span>
           <span>Citizen Wallet</span>
         </div>
-        <h2 className="text-sm font-semibold text-foreground leading-none">
+        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
           Your Digital Wallet
         </h2>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Securely hold and present your verifiable credentials
+        </p>
       </div>
 
       <div className="flex-1 p-4 sm:p-8 overflow-auto">
@@ -76,6 +81,7 @@ export function HolderView({
               <WalletCredentialList
                 credentials={walletCredentials}
                 blockchainAnchor={blockchainAnchor}
+                devModeEnabled={devModeEnabled}
                 onPresentToVerifier={onPresentToVerifier}
               />
             )}

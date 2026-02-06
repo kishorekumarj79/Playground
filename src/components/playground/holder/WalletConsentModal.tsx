@@ -83,7 +83,7 @@ export function WalletConsentModal({ credential, onAccept, onReject }: WalletCon
           <div className="flex items-center gap-2 p-3 rounded-lg bg-success/5 border border-success/20">
             <Check className="w-4 h-4 text-success" />
             <p className="text-xs text-success">
-              Cryptographically signed & verified
+              Verified & secure digital credential
             </p>
           </div>
         </div>

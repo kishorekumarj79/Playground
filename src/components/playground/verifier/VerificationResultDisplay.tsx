@@ -5,11 +5,13 @@ import type { VerificationResult, BlockchainAnchor } from "@/types/playground";
 interface VerificationResultDisplayProps {
   result: VerificationResult;
   blockchainAnchor: BlockchainAnchor | null;
+  devModeEnabled?: boolean;
 }
 
 export function VerificationResultDisplay({
   result,
   blockchainAnchor,
+  devModeEnabled = false,
 }: VerificationResultDisplayProps) {
   return (
     <div className="space-y-4">
@@ -39,9 +41,13 @@ export function VerificationResultDisplay({
             </h3>
             <p className="text-sm text-muted-foreground">
               {result.isValid
-                ? blockchainAnchor 
-                  ? "Credential verified and blockchain anchor validated"
-                  : "Credential verified using DID & VC standards"
+                ? devModeEnabled
+                  ? (blockchainAnchor 
+                      ? "Credential verified and blockchain anchor validated"
+                      : "Credential verified using DID & VC standards")
+                  : (blockchainAnchor
+                      ? "Credential verified with tamper-proof protection"
+                      : "Credential verified and authentic")
                 : "One or more checks failed"}
             </p>
           </div>
@@ -52,7 +58,7 @@ export function VerificationResultDisplay({
       {result.sharedAttributes && Object.keys(result.sharedAttributes).length > 0 && (
         <div className="p-4 rounded-xl border border-border bg-card">
           <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-            Verified Attributes
+            {devModeEnabled ? "Verified Attributes" : "Confirmed Information"}
           </h4>
           <div className="space-y-2">
             {Object.entries(result.sharedAttributes).map(([key, value]) => (
@@ -75,13 +81,13 @@ export function VerificationResultDisplay({
         </div>
       )}
 
-      {/* Blockchain Anchor Reference */}
-      {blockchainAnchor && (
+      {/* Blockchain Anchor Reference - Only in Developer Mode */}
+      {devModeEnabled && blockchainAnchor && (
         <div className="p-4 rounded-xl border border-border bg-muted/30">
           <div className="flex items-center gap-2 mb-3">
             <Shield className="w-4 h-4 text-primary" />
             <h4 className="text-xs font-medium uppercase tracking-wider">
-              Blockchain Anchor
+              On-chain Anchor
             </h4>
           </div>
           <div className="space-y-2">
@@ -114,45 +120,58 @@ export function VerificationResultDisplay({
         </div>
       )}
 
-      {/* Individual Checks */}
-      <div className="space-y-2">
-        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Verification Checks
-        </h4>
-        <div className="space-y-1">
-          {result.checks.map((check, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
-            >
-              <div className="flex items-center gap-3">
-                {check.status === "pass" ? (
-                  <CheckCircle2 className="w-4 h-4 text-success" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-destructive" />
-                )}
-                <div>
-                  <p className="text-sm font-medium">{check.name}</p>
-                  {check.details && (
-                    <p className="text-xs text-muted-foreground">
-                      {check.details}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "text-[10px] font-medium px-2 py-0.5 rounded",
-                  check.status === "pass" && "bg-success/10 text-success",
-                  check.status === "fail" && "bg-destructive/10 text-destructive"
-                )}
-              >
-                {check.status.toUpperCase()}
-              </span>
-            </div>
-          ))}
+      {/* Simple trust badge for non-dev mode with blockchain anchor */}
+      {!devModeEnabled && blockchainAnchor && (
+        <div className="flex items-center gap-2 p-4 rounded-xl bg-success/5 border border-success/20">
+          <Shield className="w-5 h-5 text-success" />
+          <div>
+            <p className="text-sm font-medium text-success">Protected on blockchain</p>
+            <p className="text-xs text-muted-foreground">Tamper-proof and publicly verifiable</p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Individual Checks - Only in Developer Mode */}
+      {devModeEnabled && (
+        <div className="space-y-2">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Verification Checks
+          </h4>
+          <div className="space-y-1">
+            {result.checks.map((check, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+              >
+                <div className="flex items-center gap-3">
+                  {check.status === "pass" ? (
+                    <CheckCircle2 className="w-4 h-4 text-success" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-destructive" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium">{check.name}</p>
+                    {check.details && (
+                      <p className="text-xs text-muted-foreground">
+                        {check.details}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "text-[10px] font-medium px-2 py-0.5 rounded",
+                    check.status === "pass" && "bg-success/10 text-success",
+                    check.status === "fail" && "bg-destructive/10 text-destructive"
+                  )}
+                >
+                  {check.status.toUpperCase()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Timestamp */}
       <p className="text-[10px] text-muted-foreground text-center">

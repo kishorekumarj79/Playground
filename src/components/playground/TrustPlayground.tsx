@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { usePlayground } from "@/hooks/usePlayground";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { OrientationScreen } from "./OrientationScreen";
@@ -11,12 +11,10 @@ import { DevConsole } from "./DevConsole";
 import { MobileDevConsole } from "./MobileDevConsole";
 import { BottomFooter } from "./BottomFooter";
 import { TemplateSelectionModal } from "./issuer/TemplateSelectionModal";
-import { BookDemoModal } from "./BookDemoModal";
 
 export function TrustPlayground() {
   const isMobile = useIsMobile();
   const [showPostVerificationCTA, setShowPostVerificationCTA] = useState(false);
-  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const {
     state,
@@ -68,17 +66,6 @@ export function TrustPlayground() {
     resetPlayground();
   }, [resetPlayground]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const shouldStart = params.get("start") === "true";
-    const devMode = params.get("dev") === "true";
-
-    if (shouldStart && !state.hasStarted) {
-      startPlayground(devMode);
-    }
-  }, [state.hasStarted, startPlayground, toggleDevMode, toggleConsole]);
-
-
   // Show orientation screen if not started
   if (!state.hasStarted) {
     return <OrientationScreen onStart={startPlayground} />;
@@ -117,7 +104,6 @@ export function TrustPlayground() {
           }}
           onUiPreviewToggle={toggleUiPreview}
           onReset={handleReset}
-          onBookDemo={() => setShowBookingModal(true)}
         />
       ) : (
         <TopUtilityBar
@@ -135,7 +121,6 @@ export function TrustPlayground() {
           }}
           onUiPreviewToggle={toggleUiPreview}
           onReset={handleReset}
-          onBookDemo={() => setShowBookingModal(true)}
         />
       )}
 
@@ -169,6 +154,7 @@ export function TrustPlayground() {
           selectedChain={state.selectedChain}
           blockchainAnchoringEnabled={state.blockchainAnchoringEnabled}
           uiPreviewEnabled={state.uiPreviewEnabled}
+          devModeEnabled={state.devModeEnabled}
           issuerConfig={state.issuerConfig}
           selectedSchema={state.selectedSchema}
           issuerStep={state.issuerStep}
@@ -225,16 +211,9 @@ export function TrustPlayground() {
       )}
 
       {/* Bottom Footer */}
-      <BottomFooter
+      <BottomFooter 
         showPostVerificationCTA={showPostVerificationCTA && !!state.verificationResult?.isValid}
         onDismissPostVerificationCTA={() => setShowPostVerificationCTA(false)}
-        onBookDemo={() => setShowBookingModal(true)}
-      />
-
-      {/* Book Demo Modal */}
-      <BookDemoModal
-        isOpen={showBookingModal}
-        onClose={() => setShowBookingModal(false)}
       />
     </div>
   );

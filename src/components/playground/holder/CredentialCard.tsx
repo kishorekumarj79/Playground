@@ -8,13 +8,15 @@ interface CredentialCardProps {
   blockchainAnchor: BlockchainAnchor | null;
   isExpanded?: boolean;
   onToggle?: () => void;
+  devModeEnabled?: boolean;
 }
 
 export function CredentialCard({ 
   credential, 
   blockchainAnchor, 
   isExpanded = false,
-  onToggle 
+  onToggle,
+  devModeEnabled = false
 }: CredentialCardProps) {
   const subject = credential.credentialSubject;
   const credentialType = credential.type[1]?.replace(/([A-Z])/g, ' $1').trim() || "Verifiable Credential";
@@ -86,36 +88,63 @@ export function CredentialCard({
               ))}
           </div>
 
-          {/* Issuer */}
+          {/* Issuer - Technical details only in Developer Mode */}
           <div className="p-3 rounded-lg bg-muted/30 space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Issuer DID</span>
-              <span className="font-mono text-[10px] text-foreground">
-                {credential.issuer.slice(0, 24)}...
-              </span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Issued</span>
-              <span className="font-medium text-foreground">
-                {new Date(credential.issuanceDate).toLocaleString()}
-              </span>
-            </div>
-            {credential.expirationDate && (
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Expires</span>
-                <span className="font-medium text-foreground">
-                  {new Date(credential.expirationDate).toLocaleDateString()}
-                </span>
-              </div>
+            {devModeEnabled ? (
+              <>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Issuer DID</span>
+                  <span className="font-mono text-[10px] text-foreground">
+                    {credential.issuer.slice(0, 24)}...
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Issued</span>
+                  <span className="font-medium text-foreground">
+                    {new Date(credential.issuanceDate).toLocaleString()}
+                  </span>
+                </div>
+                {credential.expirationDate && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Expires</span>
+                    <span className="font-medium text-foreground">
+                      {new Date(credential.expirationDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Issued by</span>
+                  <span className="font-medium text-foreground">
+                    Trusted Authority
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Issue Date</span>
+                  <span className="font-medium text-foreground">
+                    {new Date(credential.issuanceDate).toLocaleDateString()}
+                  </span>
+                </div>
+                {credential.expirationDate && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Valid Until</span>
+                    <span className="font-medium text-foreground">
+                      {new Date(credential.expirationDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* Blockchain Anchor */}
-          {blockchainAnchor && (
+          {/* Blockchain Anchor - Only in Developer Mode */}
+          {devModeEnabled && blockchainAnchor && (
             <div className="p-3 rounded-lg bg-muted/30 space-y-2">
               <div className="flex items-center gap-2 mb-2">
                 <Shield className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-medium">Blockchain Anchor</span>
+                <span className="text-xs font-medium">On-chain Anchor</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Chain</span>
@@ -136,6 +165,14 @@ export function CredentialCard({
                   <ExternalLink className="w-3 h-3" />
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Simple trust badge for non-dev mode */}
+          {!devModeEnabled && blockchainAnchor && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-success/5 border border-success/20">
+              <Shield className="w-4 h-4 text-success" />
+              <span className="text-xs text-success">Verified & tamper-proof</span>
             </div>
           )}
         </div>

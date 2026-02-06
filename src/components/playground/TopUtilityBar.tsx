@@ -19,8 +19,9 @@ interface TopUtilityBarProps {
   onDevModeToggle: () => void;
   onUiPreviewToggle: () => void;
   onReset: () => void;
-  onBookDemo: () => void;
 }
+
+// Advanced options shown only in Developer Mode
 
 const chains: { value: Chain; label: string; network: string }[] = [
   { value: "ethereum", label: "Ethereum", network: "Mainnet" },
@@ -39,7 +40,6 @@ export function TopUtilityBar({
   onDevModeToggle,
   onUiPreviewToggle,
   onReset,
-  onBookDemo,
 }: TopUtilityBarProps) {
   const currentChain = chains.find((c) => c.value === selectedChain);
 
@@ -47,12 +47,18 @@ export function TopUtilityBar({
     <header className="h-14 border-b border-border bg-background flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-            <img
-              src="/images/klefki-logo.png"
-              alt="Klefki Logo"
-              className="w-full h-full object-contain"
-            />
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="w-5 h-5 text-primary-foreground"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
           </div>
           <div>
             <h1 className="text-sm font-semibold text-foreground leading-none">
@@ -66,51 +72,56 @@ export function TopUtilityBar({
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Blockchain Anchoring Toggle */}
-        <div className="flex items-center gap-2">
-          <Link2 className="w-4 h-4 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">
-            {blockchainAnchoringEnabled ? "On-chain" : "Off-chain"}
-          </span>
-          <Switch
-            checked={blockchainAnchoringEnabled}
-            onCheckedChange={onBlockchainAnchoringToggle}
-            className="scale-90"
-          />
-        </div>
+        {/* Advanced Trust Options - Only visible in Developer Mode */}
+        {devModeEnabled && (
+          <>
+            {/* Blockchain Anchoring Toggle */}
+            <div className="flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">
+                {blockchainAnchoringEnabled ? "On-chain" : "Off-chain"}
+              </span>
+              <Switch
+                checked={blockchainAnchoringEnabled}
+                onCheckedChange={onBlockchainAnchoringToggle}
+                className="scale-90"
+              />
+            </div>
 
-        {/* Chain Selector - only visible when anchoring enabled */}
-        {blockchainAnchoringEnabled && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-2">
-                <div className="w-2 h-2 rounded-full bg-success" />
-                <span className="text-xs font-medium">{currentChain?.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  {currentChain?.network}
-                </span>
-                <ChevronDown className="w-3 h-3 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {chains.map((chain) => (
-                <DropdownMenuItem
-                  key={chain.value}
-                  onClick={() => onChainChange(chain.value)}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-sm">{chain.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {chain.network}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            {/* Chain Selector - only visible when anchoring enabled */}
+            {blockchainAnchoringEnabled && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-2">
+                    <div className="w-2 h-2 rounded-full bg-success" />
+                    <span className="text-xs font-medium">{currentChain?.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {currentChain?.network}
+                    </span>
+                    <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {chains.map((chain) => (
+                    <DropdownMenuItem
+                      key={chain.value}
+                      onClick={() => onChainChange(chain.value)}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="text-sm">{chain.label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {chain.network}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </>
         )}
 
         {/* UI Preview Toggle */}
-        <div className="flex items-center gap-2 pl-4 border-l border-border">
+        <div className="flex items-center gap-2">
           <CreditCard className="w-4 h-4 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">UI Preview</span>
           <Switch
@@ -147,7 +158,7 @@ export function TopUtilityBar({
           size="sm"
           variant="outline"
           className="h-8 gap-1.5 text-xs"
-          onClick={onBookDemo}
+          onClick={() => window.open("https://calendly.com", "_blank")}
         >
           <Calendar className="w-3.5 h-3.5" />
           Book Demo
