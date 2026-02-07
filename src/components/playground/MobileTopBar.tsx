@@ -56,19 +56,13 @@ export function MobileTopBar({
     <header className="h-12 border-b border-border bg-background flex items-center justify-between px-3">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className="w-4 h-4 text-primary-foreground"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
-        </div>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+            <img
+              src="/images/klefki-logo.png"
+              alt="Klefki Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
         <div>
           <h1 className="text-xs font-semibold text-foreground leading-none">
             Klefki
