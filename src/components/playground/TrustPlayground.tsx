@@ -10,8 +10,10 @@ import { CenterStage } from "./CenterStage";
 import { DevConsole } from "./DevConsole";
 import { MobileDevConsole } from "./MobileDevConsole";
 import { BottomFooter } from "./BottomFooter";
+import { BookDemoModal } from "./BookDemoModal";
 
 export function TrustPlayground() {
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const isMobile = useIsMobile();
   const [showPostVerificationCTA, setShowPostVerificationCTA] = useState(false);
 
@@ -97,6 +99,7 @@ export function TrustPlayground() {
           }}
           onUiPreviewToggle={toggleUiPreview}
           onReset={handleReset}
+          onBookDemo={() => setShowBookingModal(true)}
         />
       ) : (
         <TopUtilityBar
@@ -114,6 +117,7 @@ export function TrustPlayground() {
           }}
           onUiPreviewToggle={toggleUiPreview}
           onReset={handleReset}
+          onBookDemo={() => setShowBookingModal(true)}
         />
       )}
 
@@ -214,6 +218,12 @@ export function TrustPlayground() {
       <BottomFooter
         showPostVerificationCTA={showPostVerificationCTA && !!state.verificationResult?.isValid}
         onDismissPostVerificationCTA={() => setShowPostVerificationCTA(false)}
+        onBookDemo={() => setShowBookingModal(true)}
+      />
+
+      <BookDemoModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
       />
     </div>
   );

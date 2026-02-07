@@ -19,6 +19,7 @@ interface TopUtilityBarProps {
   onDevModeToggle: () => void;
   onUiPreviewToggle: () => void;
   onReset: () => void;
+  onBookDemo: () => void;
 }
 
 // Advanced options shown only in Developer Mode
@@ -40,6 +41,7 @@ export function TopUtilityBar({
   onDevModeToggle,
   onUiPreviewToggle,
   onReset,
+  onBookDemo,
 }: TopUtilityBarProps) {
   const currentChain = chains.find((c) => c.value === selectedChain);
 
@@ -158,7 +160,7 @@ export function TopUtilityBar({
           size="sm"
           variant="outline"
           className="h-8 gap-1.5 text-xs"
-          onClick={() => window.open("https://calendly.com", "_blank")}
+          onClick={onBookDemo}
         >
           <Calendar className="w-3.5 h-3.5" />
           Book Demo

@@ -27,6 +27,7 @@ interface MobileTopBarProps {
   onDevModeToggle: () => void;
   onUiPreviewToggle: () => void;
   onReset: () => void;
+  onBookDemo: () => void;
 }
 
 const chains: { value: Chain; label: string; network: string }[] = [
@@ -46,6 +47,7 @@ export function MobileTopBar({
   onDevModeToggle,
   onUiPreviewToggle,
   onReset,
+  onBookDemo,
 }: MobileTopBarProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const currentChain = chains.find((c) => c.value === selectedChain);
@@ -82,7 +84,7 @@ export function MobileTopBar({
           size="sm"
           variant="outline"
           className="h-8 gap-1 text-xs px-2"
-          onClick={() => window.open("https://calendly.com", "_blank")}
+          onClick={onBookDemo}
         >
           <Calendar className="w-3 h-3" />
           Demo
