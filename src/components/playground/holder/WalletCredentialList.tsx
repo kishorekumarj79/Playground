@@ -9,13 +9,15 @@ interface WalletCredentialListProps {
   blockchainAnchor: BlockchainAnchor | null;
   devModeEnabled?: boolean;
   onPresentToVerifier: () => void;
+  onScanCredential: () => void;
 }
 
-export function WalletCredentialList({ 
-  credentials, 
+export function WalletCredentialList({
+  credentials,
   blockchainAnchor,
   devModeEnabled = false,
-  onPresentToVerifier 
+  onPresentToVerifier,
+  onScanCredential
 }: WalletCredentialListProps) {
   const [expandedIndex, setExpandedIndex] = useState<number>(0);
 
@@ -43,15 +45,26 @@ export function WalletCredentialList({
         </div>
       </div>
 
-      {/* Present Action */}
-      <div className="p-4 border-t border-border">
+      {/* Actions */}
+      <div className="p-4 border-t border-border grid grid-cols-2 gap-3">
+        <Button
+          variant="outline"
+          onClick={onScanCredential}
+          className="w-full h-11"
+        >
+          <div className="flex items-center gap-2">
+            <Share2 className="w-4 h-4" />
+            <span>Scan QR</span>
+          </div>
+        </Button>
         <Button
           onClick={onPresentToVerifier}
           className="w-full h-11 bg-holder hover:bg-holder/90 text-holder-foreground"
         >
-          <Share2 className="w-4 h-4 mr-2" />
-          Present to Verifier
-          <ArrowRight className="w-4 h-4 ml-2" />
+          <div className="flex items-center gap-2">
+            <ArrowRight className="w-4 h-4" />
+            <span>Present</span>
+          </div>
         </Button>
       </div>
     </div>

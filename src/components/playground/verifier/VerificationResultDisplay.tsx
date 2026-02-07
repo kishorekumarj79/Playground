@@ -18,7 +18,7 @@ export function VerificationResultDisplay({
       {/* Overall Result */}
       <div
         className={cn(
-          "p-6 rounded-xl border transition-all",
+          "p-4 rounded-xl border transition-all",
           result.isValid
             ? "border-success/30 bg-success/5"
             : "border-destructive/30 bg-destructive/5"
@@ -26,14 +26,14 @@ export function VerificationResultDisplay({
       >
         <div className="flex items-center gap-3">
           {result.isValid ? (
-            <CheckCircle2 className="w-8 h-8 text-success" />
+            <CheckCircle2 className="w-7 h-7 text-success" />
           ) : (
-            <XCircle className="w-8 h-8 text-destructive" />
+            <XCircle className="w-7 h-7 text-destructive" />
           )}
           <div>
             <h3
               className={cn(
-                "text-lg font-semibold",
+                "text-base font-semibold",
                 result.isValid ? "text-success" : "text-destructive"
               )}
             >
@@ -42,12 +42,12 @@ export function VerificationResultDisplay({
             <p className="text-sm text-muted-foreground">
               {result.isValid
                 ? devModeEnabled
-                  ? (blockchainAnchor 
-                      ? "Credential verified and blockchain anchor validated"
-                      : "Credential verified using DID & VC standards")
+                  ? (blockchainAnchor
+                    ? "Credential verified and blockchain anchor validated"
+                    : "Credential verified using DID & VC standards")
                   : (blockchainAnchor
-                      ? "Credential verified with tamper-proof protection"
-                      : "Credential verified and authentic")
+                    ? "Credential verified with tamper-proof protection"
+                    : "Credential verified and authentic")
                 : "One or more checks failed"}
             </p>
           </div>
@@ -64,9 +64,9 @@ export function VerificationResultDisplay({
             {Object.entries(result.sharedAttributes).map(([key, value]) => (
               <div
                 key={key}
-                className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/20"
+                className="flex items-center justify-between p-2.5 rounded-lg bg-success/5 border border-success/20"
               >
-                <span className="text-sm text-muted-foreground capitalize">
+                <span className="text-xs text-muted-foreground capitalize">
                   {key.replace(/([A-Z])/g, ' $1').trim()}
                 </span>
                 <div className="flex items-center gap-2">

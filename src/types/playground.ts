@@ -4,7 +4,7 @@ export type Chain = "ethereum" | "polygon" | "private" | "custom";
 
 export type DIDMethod = "did:web" | "did:key" | "did:ethr";
 
-export type HolderStep = "empty" | "scanning" | "consent" | "stored";
+export type HolderStep = "empty" | "scanning" | "consent" | "stored" | "review-request";
 
 export type VerifierStep = "request" | "awaiting" | "verifying" | "result";
 
@@ -28,6 +28,7 @@ export interface VerificationMethod {
 export interface VerifiableCredential {
   "@context": string[];
   type: string[];
+  name?: string; // Human-readable name (e.g., "Uganda - National ID")
   issuer: string;
   issuanceDate: string;
   expirationDate?: string;
@@ -119,7 +120,7 @@ export interface PlaygroundState {
   selectedSchema: CredentialSchema;
   selectedCountry: string;
   selectedSector: string;
-  issuerStep: "identity" | "issue";
+  issuerStep: "national-id" | "otp" | "holder-info" | "template-selection" | "issue";
   holderStep: HolderStep;
   verifierStep: VerifierStep;
   issuedCredential: VerifiableCredential | null;
@@ -131,6 +132,18 @@ export interface PlaygroundState {
   selectedVerificationRequest: VerificationRequest | null;
   sharedAttributes: string[];
   consoleEvents: ConsoleEvent[];
+  holderInfo: HolderInfo | null;
+}
+
+export interface HolderInfo {
+  firstName: string;
+  lastName: string;
+  nationalId?: string;
+  country: string;
+  dateOfBirth?: string;
+  gender?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface VerificationResult {

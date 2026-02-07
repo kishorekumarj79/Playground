@@ -13,6 +13,7 @@ import type {
   VerificationRequest,
   HolderStep,
   VerifierStep,
+  HolderInfo,
 } from "@/types/playground";
 import { credentialTemplates, templateToSchema } from "@/data/credentialTemplates";
 
@@ -20,7 +21,7 @@ const generateDID = (method: string, identifier?: string): string => {
   const randomHex = Array.from({ length: 32 }, () =>
     Math.floor(Math.random() * 16).toString(16)
   ).join("");
-  
+
   switch (method) {
     case "did:web":
       return `did:web:${identifier || "klefki.id"}:issuers:${randomHex.slice(0, 16)}`;
@@ -43,7 +44,7 @@ const generateTxHash = (): string => {
 const generatePublicKey = (): string => {
   return `z${Array.from({ length: 43 }, () =>
     "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"[
-      Math.floor(Math.random() * 58)
+    Math.floor(Math.random() * 58)
     ]
   ).join("")}`;
 };
@@ -59,16 +60,16 @@ export function generateVerificationRequests(): VerificationRequest[] {
       .filter((f) => f.required)
       .slice(0, 3)
       .map((f) => f.key);
-    
+
     // Get optional attributes (remaining fields, max 2)
     const optionalFields = template.fields
       .filter((f) => !requiredFields.includes(f.key))
       .slice(0, 2)
       .map((f) => f.key);
-    
+
     // Generate a verification-focused description
     const verificationPurpose = getVerificationPurpose(template.useCase, template.sector);
-    
+
     return {
       id: `verify-${template.id}`,
       name: `${template.useCase} Verification`,
@@ -90,7 +91,7 @@ function getVerificationPurpose(useCase: string, sector: string): string {
     "supply-chain": "Verify supply chain credentials for logistics compliance",
     "real-estate": "Verify property credentials for ownership verification",
   };
-  
+
   return purposeMap[sector] || `Verify ${useCase} credentials`;
 }
 
@@ -105,83 +106,83 @@ const demoNumbers = ["XXXX-XXXX", "DOC-", "REF-", "ID-", "LIC-", "CERT-"];
 // Generate demo-safe random value based on field key and type
 const generateRandomFieldValue = (field: { key: string; type: string; options?: string[] }): string => {
   const key = field.key.toLowerCase();
-  
+
   // If it's a select field, pick from options
   if (field.type === "select" && field.options && field.options.length > 0) {
     return field.options[Math.floor(Math.random() * field.options.length)];
   }
-  
+
   // Date fields
   if (field.type === "date" || key.includes("date") || key.includes("until") || key.includes("issued") || key.includes("expir")) {
     const isExpiry = key.includes("until") || key.includes("expir") || key.includes("valid");
     const isBirth = key.includes("birth");
-    
+
     if (isBirth) {
       const year = 1980 + Math.floor(Math.random() * 25);
       const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
       const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, "0");
       return `${year}-${month}-${day}`;
     }
-    
+
     if (isExpiry) {
       const year = 2025 + Math.floor(Math.random() * 3);
       const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
       const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, "0");
       return `${year}-${month}-${day}`;
     }
-    
+
     // Default to recent past date
     const year = 2023 + Math.floor(Math.random() * 2);
     const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, "0");
     const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
-  
+
   // Name-like fields
   if (key.includes("name") || key.includes("holder") || key.includes("patient") || key.includes("owner") || key.includes("practitioner") || key.includes("employee") || key.includes("investor") || key.includes("account")) {
     return demoNames[Math.floor(Math.random() * demoNames.length)];
   }
-  
+
   // ID/Number fields
   if (key.includes("id") || key.includes("number") || key.includes("license") || key.includes("permit") || key.includes("policy") || key.includes("passport") || key.includes("voter") || key.includes("beneficiary")) {
     const prefix = demoNumbers[Math.floor(Math.random() * demoNumbers.length)];
     const suffix = Math.floor(1000 + Math.random() * 9000);
     return `${prefix}${suffix}`;
   }
-  
+
   // Business/Organization fields
   if (key.includes("business") || key.includes("employer") || key.includes("company") || key.includes("organization")) {
     return demoOrganizations[Math.floor(Math.random() * demoOrganizations.length)];
   }
-  
+
   // Location fields
   if (key.includes("constituency") || key.includes("address") || key.includes("location")) {
     const locations = ["North District", "Central Zone", "East Region", "West Borough", "South Ward"];
     return locations[Math.floor(Math.random() * locations.length)];
   }
-  
+
   // Medication/Dosage fields
   if (key.includes("medication") || key.includes("drug")) {
     const meds = ["Amoxicillin", "Ibuprofen", "Metformin", "Lisinopril", "Omeprazole"];
     return meds[Math.floor(Math.random() * meds.length)];
   }
-  
+
   if (key.includes("dosage")) {
     const dosages = ["500mg", "250mg", "100mg", "50mg", "10mg"];
     return dosages[Math.floor(Math.random() * dosages.length)];
   }
-  
+
   // Property fields
   if (key.includes("property")) {
     return `PROP-${Math.floor(10000 + Math.random() * 90000)}`;
   }
-  
+
   // Specialty/Degree fields
   if (key.includes("specialty") || key.includes("degree") || key.includes("major")) {
     const specialties = ["Computer Science", "Medicine", "Engineering", "Business", "Law"];
     return specialties[Math.floor(Math.random() * specialties.length)];
   }
-  
+
   // Default: generate a sensible placeholder
   return `Demo-${Math.floor(1000 + Math.random() * 9000)}`;
 };
@@ -189,11 +190,11 @@ const generateRandomFieldValue = (field: { key: string; type: string; options?: 
 // Generic randomization for any schema
 const generateRandomIdentity = (schema: CredentialSchema): Record<string, string> => {
   const result: Record<string, string> = {};
-  
+
   schema.fields.forEach((field) => {
     result[field.key] = generateRandomFieldValue(field);
   });
-  
+
   return result;
 };
 
@@ -218,7 +219,7 @@ const initialState: PlaygroundState = {
   selectedSchema: defaultSchema,
   selectedCountry: "", // No default - user must explicitly choose
   selectedSector: "all",
-  issuerStep: "identity",
+  issuerStep: "national-id",
   holderStep: "empty",
   verifierStep: "request",
   issuedCredential: null,
@@ -230,6 +231,7 @@ const initialState: PlaygroundState = {
   selectedVerificationRequest: null,
   sharedAttributes: [],
   consoleEvents: [],
+  holderInfo: null,
 };
 
 export function usePlayground() {
@@ -268,8 +270,12 @@ export function usePlayground() {
     setState((prev) => ({ ...prev, blockchainAnchoringEnabled: !prev.blockchainAnchoringEnabled }));
   }, []);
 
-  const setIssuerStep = useCallback((step: "identity" | "issue") => {
+  const setIssuerStep = useCallback((step: "national-id" | "otp" | "holder-info" | "template-selection" | "issue") => {
     setState((prev) => ({ ...prev, issuerStep: step }));
+  }, []);
+
+  const setHolderInfo = useCallback((info: HolderInfo) => {
+    setState((prev) => ({ ...prev, holderInfo: info }));
   }, []);
 
   const setHolderStep = useCallback((step: HolderStep) => {
@@ -369,6 +375,7 @@ export function usePlayground() {
           "https://w3id.org/vc/status-list/2021/v1",
         ],
         type: ["VerifiableCredential", state.selectedSchema.name.replace(/\s+/g, "")],
+        name: state.selectedSchema.name, // Explicitly set the display name
         issuer: issuerDID,
         issuanceDate: new Date().toISOString(),
         expirationDate: new Date(
@@ -387,7 +394,7 @@ export function usePlayground() {
           proofPurpose: "assertionMethod",
           proofValue: `z${Array.from({ length: 86 }, () =>
             "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"[
-              Math.floor(Math.random() * 58)
+            Math.floor(Math.random() * 58)
             ]
           ).join("")}`,
         },
@@ -477,6 +484,27 @@ export function usePlayground() {
     setState((prev) => ({ ...prev, holderStep: "scanning" }));
   }, []);
 
+  // Handle scanning completion - distinguish between issuance and verification
+  const onScanComplete = useCallback(() => {
+    // If verifier is awaiting a scan OR has selected a request, we assume this scan is for the verification request
+    if (state.verifierStep === "awaiting" && state.selectedVerificationRequest) {
+      setState((prev) => ({
+        ...prev,
+        holderStep: "review-request",
+        // No change to verifier step yet, wait for user consent
+      }));
+    } else if (state.verifierStep === "request" && state.selectedVerificationRequest) {
+      // Also allow scanning if a request is merely selected (for inline QR flow)
+      setState((prev) => ({
+        ...prev,
+        holderStep: "review-request",
+      }));
+    } else {
+      // Default to issuance flow
+      setState((prev) => ({ ...prev, holderStep: "consent" }));
+    }
+  }, [state.verifierStep, state.selectedVerificationRequest]);
+
   const showConsentModal = useCallback(() => {
     setState((prev) => ({ ...prev, holderStep: "consent" }));
   }, []);
@@ -492,7 +520,7 @@ export function usePlayground() {
     setState((prev) => ({
       ...prev,
       holderStep: "stored",
-      walletCredentials: prev.issuedCredential 
+      walletCredentials: prev.issuedCredential
         ? [...prev.walletCredentials, prev.issuedCredential]
         : prev.walletCredentials,
       consoleEvents: [...prev.consoleEvents, event],
@@ -549,7 +577,12 @@ export function usePlayground() {
   }, []);
 
   const shareCredentialWithVerifier = useCallback(() => {
-    setState((prev) => ({ ...prev, verifierStep: "verifying" }));
+    setState((prev) => ({
+      ...prev,
+      verifierStep: "verifying",
+      currentRole: "verifier",
+      holderStep: "stored",
+    }));
   }, []);
 
   const cancelVerification = useCallback(() => {
@@ -567,7 +600,7 @@ export function usePlayground() {
 
     const credential = state.walletCredentials[0];
     const sharedData: Record<string, unknown> = {};
-    
+
     state.sharedAttributes.forEach((attr) => {
       if (credential.credentialSubject[attr] !== undefined) {
         sharedData[attr] = credential.credentialSubject[attr];
@@ -622,8 +655,8 @@ export function usePlayground() {
     const event = {
       timestamp: new Date().toISOString(),
       type: "VERIFICATION_COMPLETE" as const,
-      message: state.blockchainAnchor 
-        ? "All verification checks passed (with blockchain anchor)" 
+      message: state.blockchainAnchor
+        ? "All verification checks passed (with blockchain anchor)"
         : "All verification checks passed (standard DID & VC)",
       data: result,
     };
@@ -660,7 +693,7 @@ export function usePlayground() {
     const defaultTemplate = credentialTemplates[0];
     const schema = templateToSchema(defaultTemplate, "global");
     const issuerName = defaultTemplate.issuerAuthority.global || defaultTemplate.issuerType;
-    
+
     setState((prev) => ({
       ...prev,
       templateSelected: true,
@@ -696,6 +729,7 @@ export function usePlayground() {
     getRandomIdentity,
     issueCredential,
     scanCredential,
+    onScanComplete,
     showConsentModal,
     acceptCredential,
     rejectCredential,
@@ -708,6 +742,7 @@ export function usePlayground() {
     verifyCredential,
     resetPlayground,
     confirmTemplateSelection,
+    setHolderInfo,
     showTemplateModal,
     skipTemplateSelection,
   };

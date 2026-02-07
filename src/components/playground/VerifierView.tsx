@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import type {
   VerifiableCredential,
   VerificationResult,
@@ -11,6 +12,7 @@ import { ProofRequestBuilder } from "./verifier/ProofRequestBuilder";
 import { VerifierConsentPrompt } from "./verifier/VerifierConsentPrompt";
 import { VerificationResultDisplay } from "./verifier/VerificationResultDisplay";
 import { MobileWalletFrame } from "./holder/MobileWalletFrame";
+import { WalletVerificationConsent } from "./holder/WalletVerificationConsent";
 
 interface VerifierViewProps {
   verifierStep: VerifierStep;
@@ -54,14 +56,14 @@ export function VerifierView({
   useEffect(() => {
     if (verifierStep === "verifying" && !verificationTriggeredRef.current) {
       verificationTriggeredRef.current = true;
-      
+
       const timer = setTimeout(() => {
         onVerify();
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
-    
+
     // Reset the ref when we leave the verifying state
     if (verifierStep !== "verifying") {
       verificationTriggeredRef.current = false;
@@ -86,25 +88,25 @@ export function VerifierView({
   return (
     <div className="flex-1 flex flex-col overflow-auto">
       {/* Header */}
-      <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-border">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-          <span className="w-5 h-5 rounded bg-verifier flex items-center justify-center text-verifier-foreground text-[10px] font-semibold">
+      <div className="px-4 sm:px-8 py-2 sm:py-3 border-b border-border">
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1">
+          <span className="w-4 h-4 rounded bg-verifier flex items-center justify-center text-verifier-foreground text-[9px] font-semibold">
             3
           </span>
           <span>Service Provider</span>
         </div>
-        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
+        <h2 className="text-base sm:text-lg font-semibold text-foreground leading-tight">
           Klefki Verify
         </h2>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          {devModeEnabled 
+        <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+          {devModeEnabled
             ? "Request and verify credentials with selective disclosure"
             : "Request and verify digital credentials from holders"
           }
         </p>
       </div>
 
-      <div className="flex-1 p-4 sm:p-8 overflow-auto">
+      <div className="flex-1 p-4 sm:p-6 overflow-auto">
         {/* Request Builder Step */}
         {verifierStep === "request" && (
           <div className="max-w-xl mx-auto">
@@ -113,26 +115,26 @@ export function VerifierView({
               selectedRequest={selectedVerificationRequest}
               onSelectRequest={onSelectVerificationRequest}
               onGenerateQR={onGenerateVerificationQR}
+              devModeEnabled={devModeEnabled}
             />
           </div>
         )}
 
-        {/* Awaiting Step - Show wallet consent in phone frame */}
-        {verifierStep === "awaiting" && selectedVerificationRequest && walletCredentials[0] && (
+        {/* Awaiting Step - Show simulated mobile wallet for Holder consent */}
+        {verifierStep === "awaiting" && selectedVerificationRequest && (
           <div className="max-w-sm mx-auto">
-            <div className="text-center mb-6">
-              <p className="text-sm text-muted-foreground">
-                Waiting for wallet to scan and respond...
+            <div className="text-center mb-4">
+              <p className="text-[11px] text-muted-foreground">
+                Mobile Wallet connected. Reviewing request...
               </p>
             </div>
             <MobileWalletFrame credentialCount={walletCredentials.length}>
-              <VerifierConsentPrompt
-                credential={walletCredentials[0]}
+              <WalletVerificationConsent
                 request={selectedVerificationRequest}
-                selectedAttributes={sharedAttributes}
-                onUpdateAttributes={onUpdateSharedAttributes}
-                onShare={onShareCredential}
-                onCancel={onCancelVerification}
+                credential={walletCredentials[0] || null}
+                onAccept={onShareCredential}
+                onReject={onCancelVerification}
+                devModeEnabled={devModeEnabled}
               />
             </MobileWalletFrame>
           </div>
@@ -141,12 +143,12 @@ export function VerifierView({
         {/* Verifying Step */}
         {verifierStep === "verifying" && (
           <div className="max-w-xl mx-auto">
-            <div className="p-12 rounded-xl border border-border bg-card flex flex-col items-center justify-center">
-              <Loader2 className="w-12 h-12 text-verifier animate-spin mb-4" />
-              <h3 className="text-lg font-semibold text-foreground">
+            <div className="p-8 rounded-xl border border-border bg-card flex flex-col items-center justify-center">
+              <Loader2 className="w-10 h-10 text-verifier animate-spin mb-3" />
+              <h3 className="text-base font-semibold text-foreground">
                 Verifying Credential
               </h3>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-[11px] text-muted-foreground mt-0.5">
                 {devModeEnabled ? "Running cryptographic verification checks..." : "Checking credential authenticity..."}
               </p>
             </div>

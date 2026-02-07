@@ -10,7 +10,6 @@ import { CenterStage } from "./CenterStage";
 import { DevConsole } from "./DevConsole";
 import { MobileDevConsole } from "./MobileDevConsole";
 import { BottomFooter } from "./BottomFooter";
-import { TemplateSelectionModal } from "./issuer/TemplateSelectionModal";
 
 export function TrustPlayground() {
   const isMobile = useIsMobile();
@@ -49,6 +48,7 @@ export function TrustPlayground() {
     confirmTemplateSelection,
     showTemplateModal,
     skipTemplateSelection,
+    setHolderInfo,
   } = usePlayground();
 
   // Handle verification with post-verification CTA
@@ -71,22 +71,15 @@ export function TrustPlayground() {
     return <OrientationScreen onStart={startPlayground} />;
   }
 
-  // Show template selection modal if on issuer role and template not selected
-  const showTemplateSelectionModal = state.currentRole === "issuer" && !state.templateSelected;
+  // Show orientation screen if not started
+  if (!state.hasStarted) {
+    return <OrientationScreen onStart={startPlayground} />;
+  }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Template Selection Modal - Pre-lifecycle */}
-      <TemplateSelectionModal
-        isOpen={showTemplateSelectionModal}
-        selectedCountry={state.selectedCountry}
-        selectedSector={state.selectedSector}
-        onCountryChange={setCountry}
-        onSectorChange={setSector}
-        onSelectTemplate={selectTemplate}
-        onConfirm={confirmTemplateSelection}
-        onSkip={skipTemplateSelection}
-      />
+      {/* Template Selection Modal - Removed in favor of inline stepper flow */}
       {/* Top Utility Bar - Responsive */}
       {isMobile ? (
         <MobileTopBar
@@ -183,6 +176,13 @@ export function TrustPlayground() {
           onShareCredential={shareCredentialWithVerifier}
           onCancelVerification={cancelVerification}
           onVerify={handleVerify}
+          onSetHolderInfo={setHolderInfo}
+          holderInfo={state.holderInfo}
+          onSelectTemplate={selectTemplate}
+          onCountryChange={setCountry}
+          onSectorChange={setSector}
+          selectedCountry={state.selectedCountry}
+          selectedSector={state.selectedSector}
         />
 
         {/* Right Developer Console - Desktop only, mobile uses drawer */}
@@ -211,7 +211,7 @@ export function TrustPlayground() {
       )}
 
       {/* Bottom Footer */}
-      <BottomFooter 
+      <BottomFooter
         showPostVerificationCTA={showPostVerificationCTA && !!state.verificationResult?.isValid}
         onDismissPostVerificationCTA={() => setShowPostVerificationCTA(false)}
       />

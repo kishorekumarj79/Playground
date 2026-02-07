@@ -11,15 +11,15 @@ interface CredentialCardProps {
   devModeEnabled?: boolean;
 }
 
-export function CredentialCard({ 
-  credential, 
-  blockchainAnchor, 
+export function CredentialCard({
+  credential,
+  blockchainAnchor,
   isExpanded = false,
   onToggle,
   devModeEnabled = false
 }: CredentialCardProps) {
   const subject = credential.credentialSubject;
-  const credentialType = credential.type[1]?.replace(/([A-Z])/g, ' $1').trim() || "Verifiable Credential";
+  const credentialType = credential.name || credential.type[1]?.replace(/([A-Z])/g, ' $1').trim() || "Verifiable Credential";
   const schemaId = subject.schemaId as string;
 
   // Get schema-specific display

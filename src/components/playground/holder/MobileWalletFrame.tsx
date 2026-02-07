@@ -11,7 +11,7 @@ export function MobileWalletFrame({ credentialCount, children }: MobileWalletFra
     <div className="relative">
       {/* Phone Frame */}
       <div className="bg-foreground rounded-[2.5rem] p-3 shadow-elevated">
-        <div className="bg-background rounded-[2rem] overflow-hidden min-h-[520px] flex flex-col">
+        <div className="bg-background rounded-[2rem] overflow-hidden min-h-[480px] flex flex-col">
           {/* Status Bar */}
           <div className="h-8 px-6 flex items-center justify-between bg-muted/30 shrink-0">
             <span className="text-[10px] text-muted-foreground">9:41</span>
@@ -29,8 +29,8 @@ export function MobileWalletFrame({ credentialCount, children }: MobileWalletFra
               <div>
                 <h3 className="text-sm font-semibold">Klefki Wallet</h3>
                 <p className="text-[10px] text-muted-foreground">
-                  {credentialCount === 0 
-                    ? "No credentials" 
+                  {credentialCount === 0
+                    ? "No credentials"
                     : `${credentialCount} Credential${credentialCount > 1 ? 's' : ''}`}
                 </p>
               </div>

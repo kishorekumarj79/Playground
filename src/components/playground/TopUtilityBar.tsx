@@ -44,7 +44,7 @@ export function TopUtilityBar({
   const currentChain = chains.find((c) => c.value === selectedChain);
 
   return (
-    <header className="h-14 border-b border-border bg-background flex items-center justify-between px-6">
+    <header className="h-12 border-b border-border bg-background flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">

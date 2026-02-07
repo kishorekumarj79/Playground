@@ -12,6 +12,7 @@ import type {
   VerificationRequest,
   HolderStep,
   VerifierStep,
+  HolderInfo,
 } from "@/types/playground";
 
 interface CenterStageProps {
@@ -22,7 +23,7 @@ interface CenterStageProps {
   devModeEnabled: boolean;
   issuerConfig: IssuerConfig;
   selectedSchema: CredentialSchema;
-  issuerStep: "identity" | "issue";
+  issuerStep: "national-id" | "otp" | "holder-info" | "template-selection" | "issue";
   holderStep: HolderStep;
   verifierStep: VerifierStep;
   credential: VerifiableCredential | null;
@@ -34,7 +35,7 @@ interface CenterStageProps {
   sharedAttributes: string[];
   onUpdateIssuerConfig: (config: Partial<IssuerConfig>) => void;
   onGenerateKeys: () => void;
-  onSetIssuerStep: (step: "identity" | "issue") => void;
+  onSetIssuerStep: (step: "national-id" | "otp" | "holder-info" | "template-selection" | "issue") => void;
   onGetRandomIdentity: () => Record<string, string>;
   onIssueCredential: (data: Record<string, unknown>) => void;
   onScanCredential: () => void;
@@ -48,6 +49,13 @@ interface CenterStageProps {
   onShareCredential: () => void;
   onCancelVerification: () => void;
   onVerify: () => void;
+  onSetHolderInfo: (info: HolderInfo) => void;
+  holderInfo: HolderInfo | null;
+  onSelectTemplate: (schema: CredentialSchema, issuerName: string) => void;
+  selectedCountry: string;
+  selectedSector: string;
+  onCountryChange: (country: string) => void;
+  onSectorChange: (sector: string) => void;
 }
 
 export function CenterStage({
@@ -84,6 +92,13 @@ export function CenterStage({
   onShareCredential,
   onCancelVerification,
   onVerify,
+  onSetHolderInfo,
+  holderInfo,
+  onSelectTemplate,
+  selectedCountry,
+  selectedSector,
+  onCountryChange,
+  onSectorChange,
 }: CenterStageProps) {
   return (
     <main className="flex-1 bg-background flex flex-col overflow-hidden">
@@ -102,6 +117,14 @@ export function CenterStage({
           onSetStep={onSetIssuerStep}
           onGetRandomIdentity={onGetRandomIdentity}
           onIssue={onIssueCredential}
+          holderInfo={holderInfo}
+          onSetHolderInfo={onSetHolderInfo}
+          onSelectTemplate={onSelectTemplate}
+          selectedCountry={selectedCountry}
+          selectedSector={selectedSector}
+          onCountryChange={onCountryChange}
+          onSectorChange={onSectorChange}
+          holderStep={holderStep}
         />
       )}
 
@@ -117,6 +140,9 @@ export function CenterStage({
           onAcceptCredential={onAcceptCredential}
           onRejectCredential={onRejectCredential}
           onPresentToVerifier={onPresentToVerifier}
+          selectedVerificationRequest={selectedVerificationRequest}
+          onShareCredential={onShareCredential}
+          onCancelVerification={onCancelVerification}
         />
       )}
 

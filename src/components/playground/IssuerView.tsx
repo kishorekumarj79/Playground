@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
   Key,
@@ -8,6 +8,11 @@ import {
   Shuffle,
   ChevronRight,
   FileText,
+  ShieldCheck,
+  User,
+  Building2,
+  Search,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +24,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { LiveCredentialPreview } from "./preview/LiveCredentialPreview";
+import { priorityCountries, allCountries, mapCountryToAuthorityKey, Country } from "@/data/countries";
+import { credentialTemplates, sectors, templateToSchema, type CredentialTemplate } from "@/data/credentialTemplates";
 import type {
   Chain,
   IssuerConfig,
   CredentialSchema,
   DIDMethod,
   VerifiableCredential,
+  HolderInfo,
 } from "@/types/playground";
 
 interface IssuerViewProps {
@@ -36,13 +45,21 @@ interface IssuerViewProps {
   devModeEnabled: boolean;
   issuerConfig: IssuerConfig;
   selectedSchema: CredentialSchema;
-  issuerStep: "identity" | "issue";
+  issuerStep: "national-id" | "otp" | "holder-info" | "template-selection" | "issue";
+  holderStep: any; // Using any to avoid import cycle or type issues with HolderStep if not needed here
   issuedCredential: VerifiableCredential | null;
   onUpdateIssuerConfig: (config: Partial<IssuerConfig>) => void;
   onGenerateKeys: () => void;
-  onSetStep: (step: "identity" | "issue") => void;
+  onSetStep: (step: "national-id" | "otp" | "holder-info" | "template-selection" | "issue") => void;
   onGetRandomIdentity: () => Record<string, string>;
   onIssue: (data: Record<string, unknown>) => void;
+  holderInfo: HolderInfo | null;
+  onSetHolderInfo: (info: HolderInfo) => void;
+  onSelectTemplate: (schema: CredentialSchema, issuerName: string) => void;
+  selectedCountry: string;
+  selectedSector: string;
+  onCountryChange: (country: string) => void;
+  onSectorChange: (sector: string) => void;
 }
 
 // DID methods - only shown in Developer Mode
@@ -66,26 +83,157 @@ export function IssuerView({
   onSetStep,
   onGetRandomIdentity,
   onIssue,
+  holderInfo,
+  onSetHolderInfo,
+  onSelectTemplate,
+  selectedCountry,
+  selectedSector,
+  onCountryChange,
+  onSectorChange,
 }: IssuerViewProps) {
+  // Local state for forms
+  const [nationalId, setNationalId] = useState("");
+  const [otp, setOtp] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [localHolderInfo, setLocalHolderInfo] = useState<HolderInfo>({
+    firstName: "",
+    lastName: "",
+    country: "",
+    nationalId: "",
+  });
+
+  // Template selection state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedSectors, setExpandedSectors] = useState<Set<string>>(new Set(["public-sector"]));
+  const [showAllTemplates, setShowAllTemplates] = useState(true);
+
+  // Issue Credential state
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [isIssuing, setIsIssuing] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
+  // Initialize form data when schema changes
   useEffect(() => {
-    const initialData: Record<string, string> = {};
-    selectedSchema.fields.forEach((field) => {
-      initialData[field.key] = "";
-    });
-    setFormData(initialData);
-    setShowQR(false);
-  }, [selectedSchema]);
+    if (selectedSchema) {
+      const initialData: Record<string, string> = {};
+      selectedSchema.fields.forEach((field) => {
+        // Auto-fill from holder info if available
+        if (holderInfo) {
+          if (field.key === "fullName") initialData[field.key] = `${holderInfo.firstName} ${holderInfo.lastName}`;
+          else if (field.key === "dateOfBirth") initialData[field.key] = holderInfo.dateOfBirth || "";
+          else if (field.key === "gender") initialData[field.key] = holderInfo.gender || "";
+          else if (field.key === "nationality") {
+            // Map ID to Name for Select component (search all countries)
+            const all = [...priorityCountries, ...allCountries];
+            const countryName = all.find(c => c.code === holderInfo.country || c.code === holderInfo.country.toLowerCase())?.name || holderInfo.country || "";
+            initialData[field.key] = countryName;
+          }
+          else if (field.key === "idNumber") initialData[field.key] = holderInfo.nationalId || "";
+          else initialData[field.key] = "";
+        } else {
+          initialData[field.key] = "";
+        }
+      });
+      setFormData(initialData);
+      setShowQR(false);
+    }
+  }, [selectedSchema, holderInfo]);
 
-  const handleRandomize = () => {
-    const randomData = onGetRandomIdentity();
-    setFormData(randomData);
+  // Steps definition
+  const steps = [
+    { id: "national-id", label: "National ID", icon: User },
+    { id: "otp", label: "Verification", icon: ShieldCheck },
+    { id: "holder-info", label: "Holder Info", icon: FileText },
+    { id: "template-selection", label: "Select Template", icon: Search },
+    { id: "issue", label: "Issue", icon: Key },
+  ];
+
+  /* --- Handlers --- */
+
+  const handleRandomizeNationalId = () => {
+    // Randomize from Priority Countries only
+    const randomCountry = priorityCountries[Math.floor(Math.random() * priorityCountries.length)];
+    const randomId = Math.random().toString(36).substring(2, 12).toUpperCase();
+    setNationalId(randomId);
+    onCountryChange(randomCountry.code);
   };
 
-  const handleIssue = async () => {
+  const handleVerifyOtp = async () => {
+    setIsVerifyingOtp(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsVerifyingOtp(false);
+
+    // Auto-populate holder info on successful verification if empty
+    if (!localHolderInfo.firstName) {
+      handleRandomizeHolderInfo();
+    }
+
+    onSetStep("holder-info");
+  };
+
+  const handleSaveHolderInfo = () => {
+    onSetHolderInfo({
+      ...localHolderInfo,
+      country: selectedCountry, // Ensure country is synced
+      nationalId: nationalId,
+    });
+    onSetStep("template-selection");
+  };
+
+  const handleRandomizeHolderInfo = () => {
+    const firstNames = ["James", "Mary", "Robert", "Patricia", "John", "Jennifer", "Michael", "Linda"];
+    const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis"];
+
+    setLocalHolderInfo({
+      firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
+      lastName: lastNames[Math.floor(Math.random() * lastNames.length)],
+      country: selectedCountry,
+      nationalId: nationalId,
+      dateOfBirth: "1990-01-01",
+      gender: "Male"
+    });
+  };
+
+  // Filter templates
+  const filteredTemplates = useMemo(() => {
+    let templates = credentialTemplates;
+
+    if (selectedSector && selectedSector !== "all" && !showAllTemplates) {
+      templates = templates.filter(t => t.sector === selectedSector);
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      templates = templates.filter(
+        t =>
+          t.name.toLowerCase().includes(query) ||
+          t.useCase.toLowerCase().includes(query) ||
+          t.benefit.toLowerCase().includes(query)
+      );
+    }
+
+    return templates;
+  }, [selectedSector, searchQuery, showAllTemplates]);
+
+  const groupedTemplates = useMemo(() => {
+    const groups: Record<string, Record<string, CredentialTemplate[]>> = {};
+    filteredTemplates.forEach(template => {
+      if (!groups[template.sector]) groups[template.sector] = {};
+      if (!groups[template.sector][template.subsector]) groups[template.sector][template.subsector] = [];
+      groups[template.sector][template.subsector].push(template);
+    });
+    return groups;
+  }, [filteredTemplates]);
+
+  const handleSelectTemplate = (template: CredentialTemplate) => {
+    const authorityKey = selectedCountry ? mapCountryToAuthorityKey(selectedCountry) : "global";
+    const issuerName = template.issuerAuthority[authorityKey] || template.issuerAuthority.global || template.issuerType;
+    const schema = templateToSchema(template, authorityKey);
+    onSelectTemplate(schema, issuerName);
+    onSetStep("issue");
+  };
+
+  const handleIssueCredential = async () => {
     setIsIssuing(true);
     await new Promise((resolve) => setTimeout(resolve, 1800));
     onIssue(formData);
@@ -93,81 +241,87 @@ export function IssuerView({
     setIsIssuing(false);
   };
 
-  const canProceedFromIdentity = issuerConfig.keysGenerated;
-  const canIssue = Object.entries(formData).every(
+  const handleRandomizeIssueData = () => {
+    const randomData = onGetRandomIdentity();
+    const preservedData = { ...randomData };
+
+    // Preserve verified fields from holderInfo
+    if (holderInfo) {
+      selectedSchema.fields.forEach((field) => {
+        if (field.key === "fullName") preservedData[field.key] = `${holderInfo.firstName} ${holderInfo.lastName}`;
+        else if (field.key === "dateOfBirth") preservedData[field.key] = holderInfo.dateOfBirth || "";
+        else if (field.key === "gender") preservedData[field.key] = holderInfo.gender || "";
+        else if (field.key === "nationality") {
+          const all = [...priorityCountries, ...allCountries];
+          const countryName = all.find(c => c.code === holderInfo.country || c.code === holderInfo.country.toLowerCase())?.name || holderInfo.country || "";
+          preservedData[field.key] = countryName;
+        }
+        else if (field.key === "idNumber") preservedData[field.key] = holderInfo.nationalId || "";
+      });
+    }
+
+    setFormData(preservedData);
+  };
+
+  const toggleSector = (sectorId: string) => {
+    setExpandedSectors(prev => {
+      const next = new Set(prev);
+      if (next.has(sectorId)) next.delete(sectorId);
+      else next.add(sectorId);
+      return next;
+    });
+  };
+
+  const canIssueCredential = Object.entries(formData).every(
     ([key, value]) =>
       !selectedSchema.fields.find((f) => f.key === key)?.required || value.trim() !== ""
   );
 
-  // Show credential preview panel when toggle is ON
-  const showPreviewPanel = uiPreviewEnabled;
-  // Preview should ALWAYS show when template is selected (schema exists)
-  // This ensures preview is visible immediately after template selection, not just on issue step
-  const showSchemaPreview = selectedSchema && selectedSchema.id !== "";
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-border shrink-0">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-          <span className="w-5 h-5 rounded bg-issuer flex items-center justify-center text-issuer-foreground text-[10px] font-semibold">
+      <div className="px-4 sm:px-8 py-2 sm:py-3 border-b border-border shrink-0">
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-1">
+          <span className="w-4 h-4 rounded bg-issuer flex items-center justify-center text-issuer-foreground text-[9px] font-semibold">
             1
           </span>
-          <span>Authority Portal — Klefki Studio</span>
+          <span>Issuer Portal</span>
         </div>
-        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
-          Issue Verifiable Credential
+        <h2 className="text-base sm:text-lg font-semibold text-foreground leading-tight">
+          Issue Credential Flow
         </h2>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          {devModeEnabled ? (
-            blockchainAnchoringEnabled ? (
-              <>
-                Create a W3C-compliant credential anchored to{" "}
-                <span className="font-medium capitalize">{selectedChain}</span>
-              </>
-            ) : (
-              "Create a W3C-compliant credential using standard DID & VC"
-            )
-          ) : (
-            "Issue a tamper-proof digital credential for your use case"
-          )}
+        <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+          Complete the steps to issue a verifiable credential
         </p>
       </div>
 
-      {/* Step Indicator - 2 steps now: Authority Setup → Issue */}
-      <div className="px-4 sm:px-8 py-3 sm:py-4 border-b border-border bg-muted/30 shrink-0 overflow-x-auto">
+      {/* Step Indicator */}
+      <div className="px-4 sm:px-8 py-2 border-b border-border bg-muted/30 shrink-0 overflow-x-auto">
         <div className="flex items-center gap-2 min-w-max">
-          {[
-            { id: "identity", label: "Authority Setup", shortLabel: "Setup" },
-            { id: "issue", label: "Issue Credential", shortLabel: "Issue" },
-          ].map((step, index) => {
+          {steps.map((step, index) => {
             const isActive = issuerStep === step.id;
-            const isCompleted =
-              step.id === "identity" && issuerConfig.keysGenerated && issuerStep !== "identity";
+            const stepIndex = steps.findIndex(s => s.id === step.id);
+            const currentIndex = steps.findIndex(s => s.id === issuerStep);
+            const isCompleted = stepIndex < currentIndex;
 
             return (
               <div key={step.id} className="flex items-center gap-2">
-                <button
-                  onClick={() => onSetStep(step.id as "identity" | "issue")}
-                  disabled={step.id === "issue" && !canProceedFromIdentity}
+                <div
                   className={cn(
                     "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full text-xs font-medium transition-all",
                     isActive && "bg-primary text-primary-foreground",
-                    isCompleted && !isActive && "bg-success/10 text-success",
-                    !isActive && !isCompleted && "text-muted-foreground hover:bg-muted"
+                    isCompleted && "bg-success/10 text-success",
+                    !isActive && !isCompleted && "text-muted-foreground"
                   )}
                 >
-                  {isCompleted && !isActive ? (
+                  {isCompleted ? (
                     <Check className="w-3 h-3" />
                   ) : (
-                    <span className="w-4 h-4 rounded-full border flex items-center justify-center text-[10px]">
-                      {index + 1}
-                    </span>
+                    <step.icon className="w-3 h-3" />
                   )}
                   <span className="hidden sm:inline">{step.label}</span>
-                  <span className="sm:hidden">{step.shortLabel}</span>
-                </button>
-                {index < 1 && (
+                </div>
+                {index < steps.length - 1 && (
                   <ChevronRight className="w-4 h-4 text-border" />
                 )}
               </div>
@@ -176,221 +330,340 @@ export function IssuerView({
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4 sm:p-8">
-        <div className={cn(
-          "flex flex-col lg:flex-row gap-6 lg:gap-8",
-          showPreviewPanel ? "max-w-4xl" : "max-w-xl"
-        )}>
-          {/* Main Form Column */}
-          <div className={cn(
-            "shrink-0 w-full",
-            showPreviewPanel ? "lg:w-[400px]" : "max-w-xl"
-          )}>
-          {/* Step 1: Identity Setup */}
-          {issuerStep === "identity" && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-1">
-                  {devModeEnabled ? "Issuing Authority Setup" : "Set Up Your Issuing Authority"}
-                </h3>
+      {/* Content Area */}
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
+        <div className="max-w-2xl mx-auto">
+
+          {/* STEP 1: NATIONAL ID */}
+          {issuerStep === "national-id" && (
+            <div className="space-y-4">
+              <div className="text-center space-y-1">
+                <h3 className="text-base font-semibold">Enter National ID</h3>
                 <p className="text-xs text-muted-foreground">
-                  {devModeEnabled 
-                    ? "Configure your authority identity and generate cryptographic keys"
-                    : "Name your organization to start issuing digital credentials"
-                  }
+                  Provide the National ID of the citizen to initiate the issuance process.
                 </p>
               </div>
 
-              <div className="space-y-4">
-                {/* DID Method Selection - Only in Developer Mode */}
-                {devModeEnabled && (
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      DID Method
-                    </Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {didMethods.map((method) => (
-                        <button
-                          key={method.value}
-                          onClick={() =>
-                            onUpdateIssuerConfig({ didMethod: method.value, keysGenerated: false, issuerDID: null })
-                          }
-                          className={cn(
-                            "p-3 rounded-lg border text-left transition-all",
-                            issuerConfig.didMethod === method.value
-                              ? "border-primary bg-accent ring-1 ring-primary"
-                              : "border-border hover:border-primary/50"
-                          )}
-                        >
-                          <p className="text-sm font-mono font-medium text-foreground">
-                            {method.label}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {method.description}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
+              <div className="p-4 border border-border rounded-xl bg-card space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">National ID Number</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={nationalId}
+                      onChange={(e) => setNationalId(e.target.value)}
+                      placeholder="e.g. ABC 123456"
+                      className="font-mono"
+                    />
+                    <Button variant="outline" onClick={handleRandomizeNationalId} title="Randomize">
+                      <Shuffle className="w-4 h-4" />
+                    </Button>
                   </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="issuerName" className="text-sm">
-                    Issuing Authority Name
-                  </Label>
-                  <Input
-                    id="issuerName"
-                    value={issuerConfig.issuerName}
-                    onChange={(e) =>
-                      onUpdateIssuerConfig({ issuerName: e.target.value, keysGenerated: false, issuerDID: null })
-                    }
-                    placeholder="e.g., Ministry of Home Affairs"
-                    className="h-10"
-                  />
                 </div>
 
-                <Button
-                  onClick={onGenerateKeys}
-                  variant={issuerConfig.keysGenerated ? "outline" : "default"}
-                  className="w-full h-11 gap-2"
-                >
-                  <Key className="w-4 h-4" />
-                  {devModeEnabled 
-                    ? (issuerConfig.keysGenerated ? "Regenerate Keys" : "Generate Keys")
-                    : (issuerConfig.keysGenerated ? "Authority Ready ✓" : "Initialize Authority")
-                  }
-                </Button>
-
-                {issuerConfig.keysGenerated && (
-                  <div className="p-4 rounded-lg bg-success/5 border border-success/20 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-success" />
-                      <span className="text-sm font-medium text-success">
-                        {devModeEnabled ? "Keys Generated" : "Authority Initialized"}
-                      </span>
-                    </div>
-                    {/* Technical details only in Developer Mode */}
-                    {devModeEnabled && (
-                      <div className="space-y-1">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Issuing Authority Identifier
-                        </p>
-                        <p className="text-xs font-mono text-foreground break-all">
-                          {issuerConfig.issuerDID}
-                        </p>
-                      </div>
-                    )}
+                {selectedCountry && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                    <Building2 className="w-4 h-4" />
+                    <span>Detected Country: </span>
+                    <span className="font-medium text-foreground">
+                      {[...priorityCountries, ...allCountries].find(c => c.code === selectedCountry)?.name || selectedCountry}
+                    </span>
                   </div>
                 )}
               </div>
 
               <Button
-                onClick={() => onSetStep("issue")}
-                disabled={!canProceedFromIdentity}
-                className="w-full h-11 gap-2"
+                className="w-full"
+                onClick={() => {
+                  setOtp("123456"); // Auto-fill OTP on continue
+                  onSetStep("otp");
+                }}
+                disabled={!nationalId}
               >
-                Continue to Issue Credential
-                <ArrowRight className="w-4 h-4" />
+                Continue
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           )}
 
-          {/* Step 2: Issue Credential */}
+          {/* STEP 2: OTP VERIFICATION */}
+          {issuerStep === "otp" && (
+            <div className="space-y-4">
+              <div className="text-center space-y-1">
+                <h3 className="text-base font-semibold">Verify Identity</h3>
+                <p className="text-xs text-muted-foreground">
+                  Enter the OTP sent to the registered mobile number for ID <strong>{nationalId}</strong>
+                </p>
+              </div>
+
+              <div className="p-4 border border-border rounded-xl bg-card space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">One-Time Password</Label>
+                  <Input
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="Enter 6-digit OTP"
+                    className="font-mono text-center text-lg tracking-widest"
+                    maxLength={6}
+                  />
+                  <p className="text-xs text-muted-foreground text-center">
+                    OTP sent to registered mobile. Auto-filled for demo.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => onSetStep("national-id")}>Back</Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleVerifyOtp}
+                  disabled={!otp || isVerifyingOtp}
+                >
+                  {isVerifyingOtp ? "Verifying..." : "Verify & Proceed"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: HOLDER INFO */}
+          {issuerStep === "holder-info" && (
+            <div className="space-y-4">
+              <div className="text-center space-y-1">
+                <h3 className="text-base font-semibold">Confirm Holder Details</h3>
+                <p className="text-xs text-muted-foreground">
+                  Review the information retrieved from the national registry.
+                </p>
+              </div>
+
+              <div className="p-4 border border-border rounded-xl bg-card space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">First Name</Label>
+                    <Input
+                      value={localHolderInfo.firstName}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Last Name</Label>
+                    <Input
+                      value={localHolderInfo.lastName}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nationality</Label>
+                    <Input
+                      value={[...priorityCountries, ...allCountries].find(c => c.code === selectedCountry)?.name || selectedCountry || "Unknown"}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date of Birth</Label>
+                    <Input
+                      type="date"
+                      value={localHolderInfo.dateOfBirth}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Gender</Label>
+                    <Input
+                      value={localHolderInfo.gender}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button variant="ghost" size="sm" onClick={handleRandomizeHolderInfo} className="text-xs">
+                    <Shuffle className="w-3 h-3 mr-2" />
+                    Simulate Different Identity
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => onSetStep("otp")}>Back</Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleSaveHolderInfo}
+                  disabled={!localHolderInfo.firstName || !localHolderInfo.lastName}
+                >
+                  Confirm & Continue
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: TEMPLATE SELECTION (Formerly Modal) */}
+          {issuerStep === "template-selection" && (
+            <div className="space-y-4 h-full flex flex-col">
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold">Select Credential Template</h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose the type of credential you want to issue for <strong>{holderInfo?.firstName}</strong> in <strong>{[...priorityCountries, ...allCountries].find(c => c.code === selectedCountry)?.name || selectedCountry || "Global"}</strong>.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search templates..."
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={selectedSector} onValueChange={(val) => {
+                  onSectorChange(val);
+                  setShowAllTemplates(val === "all");
+                  if (val && val !== "all") setExpandedSectors(new Set([val]));
+                }}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All Sectors" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sectors</SelectItem>
+                    {sectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <ScrollArea className="flex-1 border border-border rounded-lg bg-muted/20 p-4 h-[300px]">
+                <div className="space-y-1">
+                  {Object.keys(groupedTemplates).length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">No templates found.</p>
+                  ) : (
+                    sectors.filter(sector => groupedTemplates[sector.id]).map(sector => (
+                      <div key={sector.id} className="space-y-1">
+                        <button
+                          onClick={() => toggleSector(sector.id)}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 transition-colors"
+                        >
+                          {expandedSectors.has(sector.id) ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                          )}
+                          <Building2 className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-sm font-medium text-foreground">{sector.name}</span>
+                        </button>
+
+                        {expandedSectors.has(sector.id) && (
+                          <div className="ml-5 space-y-2">
+                            {sector.subsectors
+                              .filter(subsector => groupedTemplates[sector.id]?.[subsector.id])
+                              .map(subsector => (
+                                <div key={subsector.id} className="space-y-1">
+                                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-2 pt-2">
+                                    {subsector.name}
+                                  </p>
+                                  {groupedTemplates[sector.id][subsector.id].map(template => (
+                                    <button
+                                      key={template.id}
+                                      onClick={() => handleSelectTemplate(template)}
+                                      className="w-full text-left p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:bg-accent/30 transition-all group"
+                                    >
+                                      <div className="flex justify-between items-start">
+                                        <div>
+                                          <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                                            {[...priorityCountries, ...allCountries].find(c => c.code === selectedCountry)?.name || "Global"} - {template.name}
+                                          </p>
+                                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                                            {template.useCase} • {template.issuerType}
+                                          </p>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary opacity-0 group-hover:opacity-100 transition-all" />
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" onClick={() => onSetStep("holder-info")}>Back</Button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 5: ISSUE CREDENTIAL */}
           {issuerStep === "issue" && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-1">
+                  <h3 className="text-sm font-semibold text-foreground">
                     Issue {selectedSchema.name}
                   </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Enter credential holder information or randomize for demo
+                  <p className="text-[10px] text-muted-foreground">
+                    Review final details. Data auto-filled from verified holder info.
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleRandomize}
+                  onClick={handleRandomizeIssueData}
                   className="h-8 gap-1.5 text-xs"
                 >
                   <Shuffle className="w-3 h-3" />
-                  Fill with Sample Data
+                  Regenerate
                 </Button>
               </div>
 
               {/* Dynamic Form Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {selectedSchema.fields.map((field) => (
-                  <div
-                    key={field.key}
-                    className={cn(
-                      "space-y-2",
-                      field.key === "fullName" && "sm:col-span-2"
-                    )}
-                  >
-                    <Label htmlFor={field.key} className="text-sm">
-                      {field.label}
-                      {field.required && (
-                        <span className="text-destructive ml-0.5">*</span>
-                      )}
-                    </Label>
-                    {field.type === "select" ? (
-                      <Select
-                        value={formData[field.key] || ""}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, [field.key]: value })
-                        }
-                      >
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder={`Select ${field.label}`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {field.options?.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        id={field.key}
-                        type={field.type}
-                        value={formData[field.key] || ""}
-                        onChange={(e) =>
-                          setFormData({ ...formData, [field.key]: e.target.value })
-                        }
-                        className={cn("h-10", field.key.includes("Number") && "font-mono")}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
+              <div className="grid grid-cols-1 gap-4 p-4 border rounded-xl bg-card">
+                {selectedSchema.fields.map((field) => {
+                  // Determine if field was auto-filled from verified identity
+                  const isIdentityField = ["fullName", "dateOfBirth", "gender", "nationality", "idNumber"].includes(field.key);
+                  const isReadOnly = isIdentityField && !!formData[field.key];
 
-              {/* Chain Selector Pill - show based on anchoring mode - only in Dev Mode */}
-              {devModeEnabled && blockchainAnchoringEnabled && (
-                <div className="p-4 rounded-lg bg-accent/50 border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-success" />
-                      <span className="text-xs font-medium text-foreground capitalize">
-                        {selectedChain}
-                      </span>
+                  return (
+                    <div key={field.key} className="space-y-1.5">
+                      <Label htmlFor={field.key} className="text-sm">
+                        {field.label} {field.required && <span className="text-destructive">*</span>}
+                        {isReadOnly && <span className="ml-2 text-[10px] text-success font-medium">(Verified)</span>}
+                      </Label>
+                      {field.type === "select" ? (
+                        <Select
+                          value={formData[field.key] || ""}
+                          onValueChange={(value) => setFormData({ ...formData, [field.key]: value })}
+                          disabled={isReadOnly}
+                        >
+                          <SelectTrigger className={cn("h-9", isReadOnly && "bg-muted/50 opacity-100")}>
+                            <SelectValue placeholder={`Select ${field.label}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {field.options?.map((option) => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          id={field.key}
+                          type={field.type}
+                          value={formData[field.key] || ""}
+                          onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                          className={cn("h-9", isReadOnly && "bg-muted/50")}
+                          readOnly={isReadOnly}
+                        />
+                      )}
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      On-chain verification enabled
-                    </span>
-                  </div>
-                </div>
-              )}
-              {devModeEnabled && !blockchainAnchoringEnabled && (
-                <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Off-chain verification (standard digital verification)
-                  </p>
-                </div>
-              )}
+                  );
+                })}
+              </div>
 
               {/* QR Code Display */}
               {showQR && issuedCredential && (
@@ -416,88 +689,20 @@ export function IssuerView({
 
               {/* Actions */}
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => onSetStep("identity")}
-                  className="h-11 gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
+                <Button variant="outline" onClick={() => onSetStep("template-selection")} className="h-10 gap-2">
+                  <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
                 <Button
-                  onClick={handleIssue}
-                  disabled={isIssuing || !canIssue || showQR}
-                  className="flex-1 h-11 gap-2"
+                  onClick={handleIssueCredential}
+                  disabled={isIssuing || !canIssueCredential || showQR}
+                  className="flex-1 h-10 gap-2"
                 >
-                  {isIssuing ? (
-                    <span className="flex items-center gap-2">
-                      <svg
-                        className="animate-spin h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Issuing Credential...
-                    </span>
-                  ) : showQR ? (
-                    <span className="flex items-center gap-2">
-                      <Check className="w-4 h-4" />
-                      Issued
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Issue Credential
-                    </span>
-                  )}
+                  {isIssuing ? "Issuing..." : showQR ? "Issued" : "Issue Credential"}
                 </Button>
               </div>
             </div>
           )}
-          </div>
 
-          {/* Credential Preview Column */}
-          {showPreviewPanel && (
-            <div className="flex-1 min-w-[280px] max-w-[340px]">
-              <div className="sticky top-0">
-                <div className="mb-3">
-                  <h4 className="text-sm font-medium text-foreground">
-                    Credential Preview
-                  </h4>
-                </div>
-                {showSchemaPreview ? (
-                  <LiveCredentialPreview
-                    schema={selectedSchema}
-                    formData={formData}
-                    issuerName={issuerConfig.issuerName || "Government Authority"}
-                    issuedCredential={issuedCredential}
-                  />
-                ) : (
-                  <div className="rounded-xl border border-dashed border-border bg-muted/10 p-8 text-center">
-                    <div className="w-12 h-12 rounded-lg bg-muted mx-auto mb-3 flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-muted-foreground/50" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Select a credential template to preview its format
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -17,28 +17,28 @@ const roles: {
   icon: typeof Building2;
   step: number;
 }[] = [
-  {
-    id: "issuer",
-    label: "Issuer",
-    description: "Authority Portal",
-    icon: Building2,
-    step: 1,
-  },
-  {
-    id: "holder",
-    label: "Holder",
-    description: "Citizen Wallet",
-    icon: Wallet,
-    step: 2,
-  },
-  {
-    id: "verifier",
-    label: "Verifier",
-    description: "Service Provider",
-    icon: ShieldCheck,
-    step: 3,
-  },
-];
+    {
+      id: "issuer",
+      label: "Issuer",
+      description: "Authority Portal",
+      icon: Building2,
+      step: 1,
+    },
+    {
+      id: "holder",
+      label: "Holder",
+      description: "Citizen Wallet",
+      icon: Wallet,
+      step: 2,
+    },
+    {
+      id: "verifier",
+      label: "Verifier",
+      description: "Service Provider",
+      icon: ShieldCheck,
+      step: 3,
+    },
+  ];
 
 export function RoleSidebar({
   currentRole,
@@ -66,11 +66,11 @@ export function RoleSidebar({
   return (
     <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
       {/* Header */}
-      <div className="p-5 border-b border-sidebar-border">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+      <div className="p-3 border-b border-sidebar-border">
+        <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
           Trust Lifecycle
         </h2>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">
           Navigate through each role
         </p>
       </div>
@@ -139,7 +139,7 @@ export function RoleSidebar({
 
               {/* Connector */}
               {index < roles.length - 1 && (
-                <div className="flex items-center justify-center h-4 ml-6">
+                <div className="flex items-center justify-center h-2 ml-6">
                   <ArrowRight
                     className={cn(
                       "w-3 h-3 rotate-90",
@@ -154,8 +154,8 @@ export function RoleSidebar({
       </nav>
 
       {/* Context Info */}
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="text-xs text-muted-foreground space-y-1">
+      <div className="p-3 border-t border-sidebar-border">
+        <div className="text-[11px] text-muted-foreground space-y-0.5">
           <p className="font-medium">Current Context</p>
           <p>
             Role:{" "}
@@ -164,12 +164,12 @@ export function RoleSidebar({
           <p>
             Status:{" "}
             <span className="text-foreground">
-              {hasVerificationResult 
-                ? "Verified" 
-                : hasWalletCredentials 
-                  ? "In Wallet" 
-                  : hasCredential 
-                    ? "Credential Issued" 
+              {hasVerificationResult
+                ? "Verified"
+                : hasWalletCredentials
+                  ? "In Wallet"
+                  : hasCredential
+                    ? "Credential Issued"
                     : "Ready to Issue"}
             </span>
           </p>

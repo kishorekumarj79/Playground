@@ -27,9 +27,9 @@ export function BottomFooter({
     setIsSubmitting(true);
     setIsError(false);
 
-    const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-    const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-    const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    const SERVICE_ID = "service_ipqx7jk";
+    const TEMPLATE_ID = "template_ub0ikxs";
+    const PUBLIC_KEY = "6Rg6-m0YgnK2RJnCs";
 
     try {
       await emailjs.send(
